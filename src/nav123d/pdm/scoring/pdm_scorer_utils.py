@@ -6,7 +6,7 @@ from nuplan.planning.metrics.utils.collision_utils import CollisionType
 from nuplan.planning.simulation.observation.idm.utils import is_agent_behind, is_track_stopped
 from shapely import LineString, Polygon
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import StateIndex
+from nav123d.pdm.utils.pdm_enums import StateIndex
 
 
 def get_collision_type(

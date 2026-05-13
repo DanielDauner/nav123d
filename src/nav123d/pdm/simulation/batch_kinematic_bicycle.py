@@ -7,7 +7,7 @@ from nuplan.common.actor_state.state_representation import TimePoint
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, get_pacifica_parameters
 from nuplan.common.geometry.compute import principal_value
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import DynamicStateIndex, StateIndex
+from nav123d.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
 
 
 def forward_integrate(

@@ -15,11 +15,11 @@ from shapely.geometry import Point, Polygon
 from shapely.geometry.base import CAP_STYLE
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
-from nav123d.planning.simulation.planner.pdm_planner.proposal.pdm_proposal import PDMProposalManager
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import state_array_to_ego_states
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex, StateIndex
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.observation.pdm_observation import PDMObservation
+from nav123d.pdm.proposal.pdm_proposal import PDMProposalManager
+from nav123d.pdm.utils.pdm_array_representation import state_array_to_ego_states
+from nav123d.pdm.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex, StateIndex
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 
 class PDMGenerator:

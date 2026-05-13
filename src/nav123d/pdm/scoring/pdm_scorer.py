@@ -17,24 +17,24 @@ from shapely import Point, creation
 
 from nav123d.common.dataclasses import PDMResults
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.metric_caching.metric_cache import MapParameters
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMDrivableMap
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_comfort_metrics import ego_is_comfortable
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer_utils import get_collision_type
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import (
+from nav123d.pdm.observation.pdm_observation import PDMObservation
+from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
+from nav123d.pdm.scoring.pdm_comfort_metrics import ego_is_comfortable
+from nav123d.pdm.scoring.pdm_scorer_utils import get_collision_type
+from nav123d.pdm.utils.pdm_array_representation import (
     coords_array_to_polygon_array,
     ego_states_to_state_array,
     state_array_to_coords_array,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import (
+from nav123d.pdm.utils.pdm_enums import (
     BBCoordsIndex,
     EgoAreaIndex,
     MultiMetricIndex,
     StateIndex,
     WeightedMetricIndex,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_path import PDMPath
+from nav123d.pdm.utils.pdm_path import PDMPath
+from nav123d.planning.metric_caching.metric_cache import MapParameters
 
 
 @dataclass

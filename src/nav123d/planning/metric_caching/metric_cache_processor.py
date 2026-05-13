@@ -22,12 +22,12 @@ from nuplan.planning.training.experiments.cache_metadata_entry import CacheMetad
 from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
 from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.pdm.observation.pdm_observation import PDMObservation
+from nav123d.pdm.pdm_closed_planner import PDMClosedPlanner
+from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 from nav123d.planning.metric_caching.metric_cache import MapParameters, MetricCache
 from nav123d.planning.metric_caching.metric_caching_utils import StateInterpolator
 from nav123d.planning.scenario_builder.navsim_scenario import NavSimScenario
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
-from nav123d.planning.simulation.planner.pdm_planner.pdm_closed_planner import PDMClosedPlanner
-from nav123d.planning.simulation.planner.pdm_planner.proposal.batch_idm_policy import BatchIDMPolicy
 
 
 class MetricCacheProcessor:

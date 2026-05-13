@@ -13,12 +13,12 @@ from shapely.creation import linestrings
 from shapely.geometry import LineString
 from shapely.ops import substring
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import (
+from nav123d.pdm.utils.pdm_array_representation import (
     array_to_states_se2,
     states_se2_to_array,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import SE2Index
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import calculate_progress, normalize_angle
+from nav123d.pdm.utils.pdm_enums import SE2Index
+from nav123d.pdm.utils.pdm_geometry_utils import calculate_progress, normalize_angle
 
 
 class PDMPath:

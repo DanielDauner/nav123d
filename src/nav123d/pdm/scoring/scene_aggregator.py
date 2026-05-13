@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_comfort_metrics import (
+from nav123d.pdm.scoring.pdm_comfort_metrics import (
     ego_is_two_frame_extended_comfort,
 )
 
@@ -116,10 +116,18 @@ class SceneAggregator:
                 weight_prev = weight_map[prev_token]
 
                 updates.append(
-                    {"token": now_token, "two_frame_extended_comfort": two_frame_comfort, "weight": weight_now}
+                    {
+                        "token": now_token,
+                        "two_frame_extended_comfort": two_frame_comfort,
+                        "weight": weight_now,
+                    }
                 )
                 updates.append(
-                    {"token": prev_token, "two_frame_extended_comfort": two_frame_comfort, "weight": weight_prev}
+                    {
+                        "token": prev_token,
+                        "two_frame_extended_comfort": two_frame_comfort,
+                        "weight": weight_prev,
+                    }
                 )
 
         return pd.DataFrame(updates)

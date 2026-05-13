@@ -3,10 +3,6 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
-from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import ego_states_to_state_array
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import WeightedMetricIndex
 from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import AbstractTrafficAgentsPolicy
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import StateSE2, TimePoint
@@ -20,6 +16,10 @@ from nuplan.planning.simulation.trajectory.interpolated_trajectory import Interp
 from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
 from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.pdm.scoring.pdm_scorer import PDMScorer
+from nav123d.pdm.simulation.pdm_simulator import PDMSimulator
+from nav123d.pdm.utils.pdm_array_representation import ego_states_to_state_array
+from nav123d.pdm.utils.pdm_enums import WeightedMetricIndex
 from nav123d.planning.metric_caching.metric_cache import MetricCache
 
 

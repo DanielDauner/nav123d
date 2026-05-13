@@ -5,10 +5,10 @@ import numpy.typing as npt
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, get_pacifica_parameters
 from scipy.signal import savgol_filter
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import (
+from nav123d.pdm.utils.pdm_array_representation import (
     state_array_to_center_state_array,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import StateIndex
+from nav123d.pdm.utils.pdm_enums import StateIndex
 
 # TODO: Refactor & add to config
 

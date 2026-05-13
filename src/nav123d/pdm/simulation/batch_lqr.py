@@ -6,12 +6,12 @@ import numpy.typing as npt
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, get_pacifica_parameters
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
 
-from nav123d.planning.simulation.planner.pdm_planner.simulation.batch_lqr_utils import (
+from nav123d.pdm.simulation.batch_lqr_utils import (
     _generate_profile_from_initial_condition_and_derivatives,
     get_velocity_curvature_profiles_with_derivatives_from_poses,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import DynamicStateIndex, StateIndex
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 
 class LateralStateIndex(IntEnum):

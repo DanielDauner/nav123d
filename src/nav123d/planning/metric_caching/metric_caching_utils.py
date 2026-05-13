@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.interpolate import interp1d
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 
 class StateInterpolator:

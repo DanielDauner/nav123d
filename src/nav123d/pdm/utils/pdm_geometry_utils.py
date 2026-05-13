@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from nuplan.common.actor_state.state_representation import StateSE2
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import PointIndex, SE2Index
+from nav123d.pdm.utils.pdm_enums import PointIndex, SE2Index
 
 
 def normalize_angle(angle):

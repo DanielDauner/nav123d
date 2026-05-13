@@ -11,11 +11,11 @@ from nuplan.common.maps.maps_datatypes import SemanticMapLayer
 from nuplan.planning.simulation.planner.abstract_planner import AbstractPlanner
 from shapely.geometry import Point
 
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMDrivableMap
-from nav123d.planning.simulation.planner.pdm_planner.utils.graph_search.dijkstra import Dijkstra
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_path import PDMPath
-from nav123d.planning.simulation.planner.pdm_planner.utils.route_utils import route_roadblock_correction
+from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
+from nav123d.pdm.utils.graph_search.dijkstra import Dijkstra
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.pdm_path import PDMPath
+from nav123d.pdm.utils.route_utils import route_roadblock_correction
 
 
 class AbstractPDMPlanner(AbstractPlanner, ABC):

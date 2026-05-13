@@ -8,9 +8,9 @@ from nuplan.planning.simulation.planner.abstract_planner import PlannerInitializ
 from nuplan.planning.simulation.trajectory.abstract_trajectory import AbstractTrajectory
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.abstract_pdm_closed_planner import AbstractPDMClosedPlanner
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMDrivableMap
-from nav123d.planning.simulation.planner.pdm_planner.proposal.batch_idm_policy import BatchIDMPolicy
+from nav123d.pdm.abstract_pdm_closed_planner import AbstractPDMClosedPlanner
+from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
+from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 

@@ -23,7 +23,7 @@ from PIL import Image
 from pyquaternion import Quaternion
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import (
+from nav123d.pdm.utils.pdm_geometry_utils import (
     convert_absolute_to_relative_se2_array,
 )
 

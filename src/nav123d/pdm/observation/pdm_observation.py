@@ -13,9 +13,9 @@ from nuplan.planning.simulation.observation.observation_type import DetectionsTr
 from shapely.geometry import Polygon
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_object_manager import PDMObjectManager
-from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMOccupancyMap
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import BBCoordsIndex
+from nav123d.pdm.observation.pdm_object_manager import PDMObjectManager
+from nav123d.pdm.observation.pdm_occupancy_map import PDMOccupancyMap
+from nav123d.pdm.utils.pdm_enums import BBCoordsIndex
 
 
 class PDMObservation:

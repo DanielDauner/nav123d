@@ -7,8 +7,8 @@ from nuplan.common.maps.abstract_map_objects import RoadBlockGraphEdgeMapObject
 from nuplan.common.maps.maps_datatypes import SemanticMapLayer
 from nuplan.planning.simulation.occupancy_map.strtree_occupancy_map import STRTreeOccupancyMapFactory
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.graph_search.bfs_roadblock import BreadthFirstSearchRoadBlock
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.graph_search.bfs_roadblock import BreadthFirstSearchRoadBlock
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 
 def get_current_roadblock_candidates(

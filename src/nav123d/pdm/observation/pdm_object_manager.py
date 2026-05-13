@@ -7,8 +7,8 @@ from nuplan.common.actor_state.state_representation import Point2D
 from nuplan.common.actor_state.tracked_objects import TrackedObject
 from nuplan.common.actor_state.tracked_objects_types import AGENT_TYPES, TrackedObjectType
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import BBCoordsIndex
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.pdm_enums import BBCoordsIndex
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 MAX_DYNAMIC_OBJECTS: Dict[TrackedObjectType, int] = {
     TrackedObjectType.VEHICLE: 50,

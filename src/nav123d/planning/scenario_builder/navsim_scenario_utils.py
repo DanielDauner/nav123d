@@ -16,7 +16,7 @@ from nuplan.planning.simulation.observation.observation_type import DetectionsTr
 from nav123d.common.dataclasses import Annotations, EgoStatus
 from nav123d.common.enums import BoundingBoxIndex
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import normalize_angle
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 
 # TODO: Refactor this file
 tracked_object_types: Dict[str, TrackedObjectType] = {

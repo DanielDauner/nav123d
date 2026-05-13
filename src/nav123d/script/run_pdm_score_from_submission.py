@@ -20,10 +20,10 @@ from nav123d.common.dataloader import MetricCacheLoader
 from nav123d.common.enums import SceneFrameType
 from nav123d.evaluate.pdm_score import pdm_score
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
-from nav123d.planning.simulation.planner.pdm_planner.scoring.scene_aggregator import SceneAggregator
-from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import WeightedMetricIndex
+from nav123d.pdm.scoring.pdm_scorer import PDMScorer
+from nav123d.pdm.scoring.scene_aggregator import SceneAggregator
+from nav123d.pdm.simulation.pdm_simulator import PDMSimulator
+from nav123d.pdm.utils.pdm_enums import WeightedMetricIndex
 from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import AbstractTrafficAgentsPolicy
 
 logger = logging.getLogger(__name__)

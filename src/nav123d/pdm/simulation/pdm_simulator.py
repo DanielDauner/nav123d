@@ -5,11 +5,11 @@ from nuplan.common.actor_state.state_representation import TimeDuration, TimePoi
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.simulation.planner.pdm_planner.simulation.batch_kinematic_bicycle import (
+from nav123d.pdm.simulation.batch_kinematic_bicycle import (
     BatchKinematicBicycleModel,
 )
-from nav123d.planning.simulation.planner.pdm_planner.simulation.batch_lqr import BatchLQRTracker
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import ego_state_to_state_array
+from nav123d.pdm.simulation.batch_lqr import BatchLQRTracker
+from nav123d.pdm.utils.pdm_array_representation import ego_state_to_state_array
 
 
 class PDMSimulator:

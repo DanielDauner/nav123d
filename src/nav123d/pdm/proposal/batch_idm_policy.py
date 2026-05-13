@@ -3,7 +3,7 @@ from typing import List, Union
 import numpy as np
 import numpy.typing as npt
 
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex
+from nav123d.pdm.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex
 
 
 class BatchIDMPolicy:
