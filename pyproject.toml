@@ -51,19 +51,19 @@ docs = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-py123d = ["py.typed", "**/*.yaml", "**/*.yml", "**/*.proto", "**/*.xodr.gz"]
+nav123d = ["py.typed", "**/*.yaml", "**/*.yml", "**/*.proto", "**/*.xodr.gz"]
 
 [project.urls]
-"Homepage" = "https://github.com/kesai-labs/py123d"
-"Bug Tracker" = "https://github.com/kesai-labs/py123d/issues"
-"Documentation" = "https://kesai.eu/py123d/"
+"Homepage" = "https://github.com/DanielDauner/nav123d"
+"Bug Tracker" = "https://github.com/DanielDauner/nav123d/issues"
+"Documentation" = "https://danieldauner.github.io/nav123d/"
 
 
 [tool.ruff]
 line-length = 120
 lint.select = [
     "E",  # pycodestyle errors.
-    "F",  # Pyflakes rules.
+    "F",  # Pyflakes rules./
     "PLC",  # Pylint convention warnings.
     "PLE",  # Pylint errors.
     "PLR",  # Pylint refactor recommendations.
@@ -96,7 +96,6 @@ lint.ignore = [
 
 exclude = [
     "__init__.py",
-    "src/py123d/conversion/datasets/wod/waymo_open_dataset/protos",
 ]
 lint.fixable = ["ALL"]
 lint.unfixable = []

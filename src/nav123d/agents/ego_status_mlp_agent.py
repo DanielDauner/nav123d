@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 

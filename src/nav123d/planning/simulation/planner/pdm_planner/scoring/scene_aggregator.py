@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_comfort_metrics import ego_is_two_frame_extended_comfort
 

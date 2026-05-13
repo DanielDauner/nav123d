@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 
 import pytorch_lightning as pl
 import torch
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import AgentInput, SensorConfig, Trajectory
 from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder

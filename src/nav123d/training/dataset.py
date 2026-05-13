@@ -9,7 +9,7 @@ import torch
 from tqdm import tqdm
 
 from nav123d.common.dataloader import SceneLoader
-from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
+from nav123d.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 logger = logging.getLogger(__name__)
 

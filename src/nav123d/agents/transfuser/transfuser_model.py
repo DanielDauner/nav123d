@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import torch
 import torch.nn as nn
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.agents.transfuser.transfuser_backbone import TransfuserBackbone
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig

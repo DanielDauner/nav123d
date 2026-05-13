@@ -14,7 +14,7 @@ from hydra.utils import instantiate
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.geometry.convert import relative_to_absolute_poses
 from nuplan.planning.script.builders.logging_builder import build_logger
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 from nuplan.planning.utils.multithreading.worker_utils import worker_map
 from omegaconf import DictConfig
 

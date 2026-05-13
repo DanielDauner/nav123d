@@ -15,7 +15,7 @@ from nuplan.common.maps.maps_datatypes import SemanticMapLayer
 from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.common.maps.nuplan_map.nuplan_map import NuPlanMap
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 from shapely import Point
 
 from nav123d.common.dataclasses import PDMResults

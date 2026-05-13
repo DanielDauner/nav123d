@@ -17,7 +17,7 @@ from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.database.maps_db.gpkg_mapsdb import MAP_LOCATIONS
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks, SensorChannel, Sensors
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import Scene
 from nav123d.planning.scenario_builder.navsim_scenario_utils import (

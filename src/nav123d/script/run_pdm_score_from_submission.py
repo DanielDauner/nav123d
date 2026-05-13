@@ -1,11 +1,10 @@
 import logging
-import os
+import pickle
 import traceback
-import uuid
 from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 import hydra
 import numpy as np
@@ -14,16 +13,14 @@ from hydra.utils import instantiate
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.geometry.convert import relative_to_absolute_poses
 from nuplan.planning.script.builders.logging_builder import build_logger
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
-from nuplan.planning.utils.multithreading.worker_utils import worker_map
+from nav123d.geometry.trajectory import TrajectorySampling
 from omegaconf import DictConfig
+from tqdm import tqdm
 
-from nav123d.agents.abstract_agent import AbstractAgent
-from nav123d.common.dataclasses import PDMResults, SensorConfig
-from nav123d.common.dataloader import MetricCacheLoader, SceneFilter, SceneLoader
+from nav123d.common.dataclasses import PDMResults, Trajectory
+from nav123d.common.dataloader import MetricCacheLoader
 from nav123d.common.enums import SceneFrameType
 from nav123d.evaluate.pdm_score import pdm_score
-from nav123d.planning.script.builders.worker_pool_builder import build_worker
 from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
 from nav123d.planning.simulation.planner.pdm_planner.scoring.scene_aggregator import SceneAggregator
 from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
@@ -33,67 +30,40 @@ from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import Abstr
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = "config/pdm_scoring"
-CONFIG_NAME = "default_run_pdm_score"
+CONFIG_NAME = "default_run_pdm_score_from_submission"
 
 
-def run_pdm_score(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[pd.DataFrame]:
+def run_pdm_score(
+    cfg: DictConfig,
+    first_stage_agent_output: Dict[str, Trajectory],
+    second_stage_agent_output: Dict[str, Trajectory],
+    simulator: PDMSimulator,
+    scorer: PDMScorer,
+    metric_cache_path: Path,
+) -> Tuple[List[pd.DataFrame], List[pd.DataFrame]]:
     """
-    Helper function to run PDMS evaluation in.
-    :param args: input arguments
+    Evaluate submission file with PDM score.
+    :param first stage agent output: first stage agent output
+    :param second stage agent output: second stage agent output
+    :param simulator: internal simulator object of PDM
+    :param scorer: internal scoring objected in PDM
+    :param metric_cache_path: path to metric cache
+    :return: Tuple of two lists of pd.DataFrame, each containing the PDM results for the first and second stage agents
     """
-    node_id = int(os.environ.get("NODE_RANK", 0))
-    thread_id = str(uuid.uuid4())
-    logger.info(f"Starting worker in thread_id={thread_id}, node_id={node_id}")
-
-    log_names = [a["log_file"] for a in args]
-    tokens = [t for a in args for t in a["tokens"]]
-    cfg: DictConfig = args[0]["cfg"]
-
-    simulator: PDMSimulator = instantiate(cfg.simulator)
-    scorer: PDMScorer = instantiate(cfg.scorer)
-    assert (
-        simulator.proposal_sampling == scorer.proposal_sampling
-    ), "Simulator and scorer proposal sampling has to be identical"
-    agent: AbstractAgent = instantiate(cfg.agent)
-    agent.initialize()
-
-    metric_cache_loader = MetricCacheLoader(Path(cfg.metric_cache_path))
-    scene_filter: SceneFilter = instantiate(cfg.train_test_split.scene_filter)
-    scene_filter.log_names = log_names
-    scene_filter.tokens = tokens
-    scene_loader = SceneLoader(
-        synthetic_sensor_path=Path(cfg.synthetic_sensor_path),
-        original_sensor_path=Path(cfg.original_sensor_path),
-        data_path=Path(cfg.navsim_log_path),
-        synthetic_scenes_path=Path(cfg.synthetic_scenes_path),
-        scene_filter=scene_filter,
-        sensor_config=agent.get_sensor_config(),
-    )
+    logger.info("Building SceneLoader")
+    metric_cache_loader = MetricCacheLoader(metric_cache_path)
 
     pdm_results: List[pd.DataFrame] = []
 
     # first stage
-
     traffic_agents_policy_stage_one: AbstractTrafficAgentsPolicy = instantiate(
         cfg.traffic_agents_policy.reactive, simulator.proposal_sampling
     )
 
-    scene_loader_tokens_stage_one = scene_loader.tokens_stage_one
-
-    tokens_to_evaluate_stage_one = list(set(scene_loader_tokens_stage_one) & set(metric_cache_loader.tokens))
-    for idx, (token) in enumerate(tokens_to_evaluate_stage_one):
-        logger.info(
-            f"Processing stage one reactive scenario {idx + 1} / {len(tokens_to_evaluate_stage_one)} in thread_id={thread_id}, node_id={node_id}"
-        )
+    for token in tqdm(first_stage_agent_output.keys(), desc="Compute PDM-Score for first stage reactive agents"):
         try:
             metric_cache = metric_cache_loader.get_from_token(token)
-            agent_input = scene_loader.get_agent_input_from_token(token)
-            if agent.requires_scene:
-                scene = scene_loader.get_scene_from_token(token)
-                trajectory = agent.compute_trajectory(agent_input, scene)
-            else:
-                trajectory = agent.compute_trajectory(agent_input)
-
+            trajectory = first_stage_agent_output[token]
             score_row_stage_one, ego_simulated_states = pdm_score(
                 metric_cache=metric_cache,
                 model_trajectory=trajectory,
@@ -127,27 +97,16 @@ def run_pdm_score(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[p
 
         pdm_results.append(score_row_stage_one)
 
-    # second stage
+    # second stage reactive scores
 
     traffic_agents_policy_stage_two: AbstractTrafficAgentsPolicy = instantiate(
         cfg.traffic_agents_policy.reactive, simulator.proposal_sampling
     )
-    scene_loader_tokens_stage_two = scene_loader.reactive_tokens_stage_two
 
-    tokens_to_evaluate_stage_two = list(set(scene_loader_tokens_stage_two) & set(metric_cache_loader.tokens))
-    for idx, (token) in enumerate(tokens_to_evaluate_stage_two):
-        logger.info(
-            f"Processing stage two reactive scenario {idx + 1} / {len(tokens_to_evaluate_stage_two)} in thread_id={thread_id}, node_id={node_id}"
-        )
+    for token in tqdm(second_stage_agent_output.keys(), desc="Compute PDM-Score for second stage reactive agents"):
         try:
             metric_cache = metric_cache_loader.get_from_token(token)
-            agent_input = scene_loader.get_agent_input_from_token(token)
-            if agent.requires_scene:
-                scene = scene_loader.get_scene_from_token(token)
-                trajectory = agent.compute_trajectory(agent_input, scene)
-            else:
-                trajectory = agent.compute_trajectory(agent_input)
-
+            trajectory = second_stage_agent_output[token]
             score_row_stage_two, ego_simulated_states = pdm_score(
                 metric_cache=metric_cache,
                 model_trajectory=trajectory,
@@ -301,6 +260,7 @@ def create_scene_aggregators(
     full_score_df = full_score_df.set_index("token")
 
     all_updates = []
+    all_seen_tokens = set()
 
     for (now_frame, previous_frame), second_stage in all_mappings.items():
         aggregator = SceneAggregator(
@@ -312,6 +272,7 @@ def create_scene_aggregators(
         )
         updated_rows = aggregator.aggregate_scores()
 
+        all_seen_tokens.update(updated_rows["token"])
         all_updates.append(updated_rows)
 
     all_updates_df = pd.concat(all_updates, ignore_index=True).set_index("token")
@@ -325,55 +286,56 @@ def create_scene_aggregators(
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig) -> None:
     """
-    Main entrypoint for running PDMS evaluation.
+    Main entrypoint for running PDMS from submission pickle.
     :param cfg: omegaconf dictionary
     """
+    submission_file_path = Path(cfg.submission_file_path)
+    metric_cache_path = Path(cfg.metric_cache_path)
+    simulator: PDMSimulator = instantiate(cfg.simulator)
+    scorer: PDMScorer = instantiate(cfg.scorer)
 
     build_logger(cfg)
-    worker = build_worker(cfg)
+    assert (
+        simulator.proposal_sampling == scorer.proposal_sampling
+    ), "Simulator and scorer proposal sampling has to be identical"
 
-    # Extract scenes based on scene-loader to know which tokens to distribute across workers
-    # TODO: infer the tokens per log from metadata, to not have to load metric cache and scenes here
-    scene_loader = SceneLoader(
-        synthetic_sensor_path=None,
-        original_sensor_path=None,
-        data_path=Path(cfg.navsim_log_path),
-        synthetic_scenes_path=Path(cfg.synthetic_scenes_path),
-        scene_filter=instantiate(cfg.train_test_split.scene_filter),
-        sensor_config=SensorConfig.build_no_sensors(),
+    with open(submission_file_path, "rb") as f:
+        submission_data = pickle.load(f)
+
+    first_stage_output: Dict[str, Trajectory] = submission_data["first_stage_predictions"]
+    second_stage_output: Dict[str, Trajectory] = submission_data["second_stage_predictions"]
+
+    assert (
+        len(first_stage_output) == 1 and len(second_stage_output) == 1
+    ), "Multi-seed evaluation currently not supported in run_pdm_score!"
+    first_stage_output = first_stage_output[0]
+    second_stage_output = second_stage_output[0]
+
+    score_rows = run_pdm_score(
+        cfg=cfg,
+        first_stage_agent_output=first_stage_output,
+        second_stage_agent_output=second_stage_output,
+        simulator=simulator,
+        scorer=scorer,
+        metric_cache_path=metric_cache_path,
     )
-    metric_cache_loader = MetricCacheLoader(Path(cfg.metric_cache_path))
-
-    tokens_to_evaluate = list(set(scene_loader.tokens) & set(metric_cache_loader.tokens))
-    num_missing_metric_cache_tokens = len(set(scene_loader.tokens) - set(metric_cache_loader.tokens))
-    num_unused_metric_cache_tokens = len(set(metric_cache_loader.tokens) - set(scene_loader.tokens))
-    if num_missing_metric_cache_tokens > 0:
-        logger.warning(f"Missing metric cache for {num_missing_metric_cache_tokens} tokens. Skipping these tokens.")
-    if num_unused_metric_cache_tokens > 0:
-        logger.warning(f"Unused metric cache for {num_unused_metric_cache_tokens} tokens. Skipping these tokens.")
-    logger.info(f"Starting pdm scoring of {len(tokens_to_evaluate)} scenarios...")
-    data_points = [
-        {
-            "cfg": cfg,
-            "log_file": log_file,
-            "tokens": tokens_list,
-        }
-        for log_file, tokens_list in scene_loader.get_tokens_list_per_log().items()
-    ]
-    score_rows: List[pd.DataFrame] = worker_map(worker, run_pdm_score, data_points)
 
     pdm_score_df = pd.concat(score_rows)
 
+    # score aggregation
     try:
         raw_mapping = cfg.train_test_split.reactive_all_mapping
         all_mappings: Dict[Tuple[str, str], List[Tuple[str, str]]] = {}
 
         for orig_token, prev_token, two_stage_pairs in raw_mapping:
-            if prev_token in set(scene_loader.tokens) or orig_token in set(scene_loader.tokens):
+            if prev_token in set(first_stage_output.keys()) or orig_token in set(first_stage_output.keys()):
                 all_mappings[(orig_token, prev_token)] = [tuple(pair) for pair in two_stage_pairs]
 
+        # for stage one reactive
         pdm_score_df = create_scene_aggregators(
-            all_mappings, pdm_score_df, instantiate(cfg.simulator.proposal_sampling)
+            all_mappings,
+            pdm_score_df,
+            instantiate(cfg.simulator.proposal_sampling),
         )
         pdm_score_df = compute_final_scores(pdm_score_df)
         pseudo_closed_loop_valid = True

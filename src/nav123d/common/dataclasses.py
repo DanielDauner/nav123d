@@ -17,7 +17,7 @@ from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.database.maps_db.gpkg_mapsdb import MAP_LOCATIONS
 from nuplan.database.utils.pointclouds.lidar import LidarPointCloud
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 from PIL import Image
 from pyquaternion import Quaternion
 

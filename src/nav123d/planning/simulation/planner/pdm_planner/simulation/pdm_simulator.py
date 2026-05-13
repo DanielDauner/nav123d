@@ -3,7 +3,7 @@ import numpy.typing as npt
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import TimeDuration, TimePoint
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.planning.simulation.planner.pdm_planner.simulation.batch_kinematic_bicycle import BatchKinematicBicycleModel
 from nav123d.planning.simulation.planner.pdm_planner.simulation.batch_lqr import BatchLQRTracker

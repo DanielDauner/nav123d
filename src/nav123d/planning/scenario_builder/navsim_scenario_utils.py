@@ -12,7 +12,7 @@ from nuplan.common.actor_state.tracked_objects import TrackedObject, TrackedObje
 from nuplan.common.actor_state.tracked_objects_types import AGENT_TYPES, TrackedObjectType
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import Annotations, EgoStatus
 from nav123d.common.enums import BoundingBoxIndex

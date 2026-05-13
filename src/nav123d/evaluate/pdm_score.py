@@ -12,7 +12,7 @@ from nuplan.planning.simulation.planner.ml_planner.transform_utils import (
 )
 from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import WeightedMetricIndex
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
