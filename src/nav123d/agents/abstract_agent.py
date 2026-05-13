@@ -3,9 +3,9 @@ from typing import Dict, List, Union
 
 import pytorch_lightning as pl
 import torch
-from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import AgentInput, SensorConfig, Trajectory
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 
@@ -96,7 +96,10 @@ class AbstractAgent(torch.nn.Module, ABC):
 
     def get_optimizers(
         self,
-    ) -> Union[torch.optim.Optimizer, Dict[str, Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]],]:
+    ) -> Union[
+        torch.optim.Optimizer,
+        Dict[str, Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]],
+    ]:
         """
         Returns the optimizers that are used by thy pytorch-lightning trainer.
         Has to be either a single optimizer or a dict of optimizer and lr scheduler.

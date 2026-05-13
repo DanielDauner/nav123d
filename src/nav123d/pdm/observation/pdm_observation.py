@@ -10,9 +10,9 @@ from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject
 from nuplan.common.maps.maps_datatypes import TrafficLightStatusData, TrafficLightStatusType
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks, Observation
-from nav123d.geometry.trajectory import TrajectorySampling
 from shapely.geometry import Polygon
 
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_object_manager import PDMObjectManager
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMOccupancyMap
 from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import BBCoordsIndex
@@ -37,9 +37,9 @@ class PDMObservation:
         :param observation_sample_res: sample resolution of forecast, defaults to 2
         :param extend_observation_for_ttc: extend observation for TTC metric, defaults to False
         """
-        assert (
-            trajectory_sampling.interval_length == proposal_sampling.interval_length
-        ), "PDMObservation: Proposals and Trajectory must have equal interval length!"
+        assert trajectory_sampling.interval_length == proposal_sampling.interval_length, (
+            "PDMObservation: Proposals and Trajectory must have equal interval length!"
+        )
 
         # observation needs length of trajectory horizon or proposal horizon +1s (for TTC metric)
         self._sample_interval: float = trajectory_sampling.interval_length  # [s]
@@ -241,9 +241,9 @@ class PDMObservation:
             occupancy_map = PDMOccupancyMap(tokens, polygons)
             occupancy_maps.append(occupancy_map)
 
-        assert (
-            len(occupancy_maps) == self._observation_samples + 1
-        ), f"Expected observation length {self._observation_samples + 1}, but got {len(occupancy_maps)}"
+        assert len(occupancy_maps) == self._observation_samples + 1, (
+            f"Expected observation length {self._observation_samples + 1}, but got {len(occupancy_maps)}"
+        )
 
         self._detections_tracks = detection_tracks
         self._occupancy_maps: List[PDMOccupancyMap] = occupancy_maps
@@ -296,9 +296,9 @@ class PDMObservation:
 
             if compute_traffic_light_data:
                 if traffic_light_data is not None and route_lane_dict is not None:
-                    assert idx < len(
-                        traffic_light_data
-                    ), f"Length of traffic_light_data ({len(traffic_light_data)}) does not match detection_tracks ({len(detection_tracks)})."
+                    assert idx < len(traffic_light_data), (
+                        f"Length of traffic_light_data ({len(traffic_light_data)}) does not match detection_tracks ({len(detection_tracks)})."
+                    )
 
                     (
                         traffic_light_tokens,
@@ -317,9 +317,9 @@ class PDMObservation:
                     )
             else:
                 if self._occupancy_maps_tl is not None:
-                    assert idx < len(
-                        self._occupancy_maps_tl
-                    ), f"Index {idx} exceeds the length of _occupancy_maps_tl ({len(self._occupancy_maps_tl)})."
+                    assert idx < len(self._occupancy_maps_tl), (
+                        f"Index {idx} exceeds the length of _occupancy_maps_tl ({len(self._occupancy_maps_tl)})."
+                    )
                     (
                         traffic_light_tokens,
                         traffic_light_polygons,

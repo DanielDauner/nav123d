@@ -13,10 +13,10 @@ from nuplan.planning.metrics.utils.collision_utils import CollisionType
 from nuplan.planning.simulation.observation.idm.utils import is_agent_ahead, is_agent_behind
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 from shapely import Point, creation
 
 from nav123d.common.dataclasses import PDMResults
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.metric_caching.metric_cache import MapParameters
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMDrivableMap
@@ -39,7 +39,6 @@ from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_path import PDMPa
 
 @dataclass
 class PDMScorerConfig:
-
     # weighted metric weights
     progress_weight: float = 5.0
     ttc_weight: float = 5.0
@@ -183,7 +182,6 @@ class PDMScorer:
 
         results: List[pd.DataFrame] = []
         for proposal_idx in range(self._num_proposals):
-
             no_at_fault_collisions = self._multi_metrics[MultiMetricIndex.NO_COLLISION, proposal_idx]
             drivable_area_compliance = self._multi_metrics[MultiMetricIndex.DRIVABLE_AREA, proposal_idx]
             driving_direction_compliance = self._multi_metrics[MultiMetricIndex.DRIVING_DIRECTION, proposal_idx]
@@ -661,7 +659,6 @@ class PDMScorer:
         is_history_comfortable = np.ones(self._num_proposals, dtype=np.float64)
 
         if self._human_past_trajectory is not None:
-
             # interpolate human past trajectory
             history_start_time_us = self._human_past_trajectory.start_time.time_us
             history_end_time_us = self._human_past_trajectory.end_time.time_us

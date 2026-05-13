@@ -1,3 +1,5 @@
+"TODO: Complete delete after refactoring"
+
 from __future__ import annotations
 
 import io
@@ -17,10 +19,10 @@ from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.database.maps_db.gpkg_mapsdb import MAP_LOCATIONS
 from nuplan.database.utils.pointclouds.lidar import LidarPointCloud
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
-from nav123d.geometry.trajectory import TrajectorySampling
 from PIL import Image
 from pyquaternion import Quaternion
 
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_geometry_utils import (
     convert_absolute_to_relative_se2_array,
 )
@@ -195,7 +197,6 @@ class AgentInput:
         lidars: List[Lidar] = []
 
         for frame_idx in range(num_history_frames):
-
             ego_dynamic_state = scene_dict_list[frame_idx]["ego_dynamic_state"]
             ego_status = EgoStatus(
                 ego_pose=np.array(local_ego_poses[frame_idx], dtype=np.float32),
@@ -217,7 +218,9 @@ class AgentInput:
             lidars.append(
                 Lidar.from_paths(
                     sensor_blobs_path=sensor_blobs_path,
-                    lidar_path=Path(scene_dict_list[frame_idx]["lidar_path"]) if scene_dict_list[frame_idx]["lidar_path"] is not None else None,
+                    lidar_path=Path(scene_dict_list[frame_idx]["lidar_path"])
+                    if scene_dict_list[frame_idx]["lidar_path"] is not None
+                    else None,
                     sensor_names=sensor_names,
                 )
             )
@@ -248,14 +251,11 @@ class AgentInput:
 
         for frame_idx in range(num_history_frames):
             ego_statuses.append(scene_dict_list[frame_idx].ego_status)
-            cameras.append(
-                    scene_dict_list[frame_idx].cameras
-            )
-            lidars.append(
-                    scene_dict_list[frame_idx].lidar
-            )
+            cameras.append(scene_dict_list[frame_idx].cameras)
+            lidars.append(scene_dict_list[frame_idx].lidar)
 
         return AgentInput(ego_statuses, cameras, lidars)
+
 
 @dataclass
 class Annotations:
@@ -271,9 +271,9 @@ class Annotations:
         annotation_lengths: Dict[str, int] = {
             attribute_name: len(attribute) for attribute_name, attribute in vars(self).items()
         }
-        assert (
-            len(set(annotation_lengths.values())) == 1
-        ), f"Annotations expects all attributes to have equal length, but got {annotation_lengths}"
+        assert len(set(annotation_lengths.values())) == 1, (
+            f"Annotations expects all attributes to have equal length, but got {annotation_lengths}"
+        )
 
 
 @dataclass
@@ -285,9 +285,9 @@ class Trajectory:
 
     def __post_init__(self):
         assert self.poses.ndim == 2, "Trajectory poses should have two dimensions for samples and poses."
-        assert (
-            self.poses.shape[0] == self.trajectory_sampling.num_poses
-        ), "Trajectory poses and sampling have unequal number of poses."
+        assert self.poses.shape[0] == self.trajectory_sampling.num_poses, (
+            "Trajectory poses and sampling have unequal number of poses."
+        )
         assert self.poses.shape[1] == 3, "Trajectory requires (x, y, heading) at last dim."
 
 
@@ -530,7 +530,7 @@ class Scene:
             frames.append(frame)
 
         return Scene(scene_metadata=scene_metadata, map_api=map_api, frames=frames)
-    
+
     @classmethod
     def from_scene_dict_list_private(
         cls,
@@ -606,7 +606,7 @@ class Scene:
                 cameras=cameras,
             )
             frames.append(frame)
-            
+
         return Scene(scene_metadata=scene_metadata, map_api=None, frames=frames)
 
     def save_to_disk(self, data_path: Path):
@@ -753,7 +753,6 @@ class SceneFilter:
     # TODO: expand filter options
 
     def __post_init__(self):
-
         if self.frame_interval is None:
             self.frame_interval = self.num_frames
 

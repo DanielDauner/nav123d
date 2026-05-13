@@ -17,7 +17,6 @@ class TransfuserBackbone(nn.Module):
     """Multi-scale Fusion Transformer for image + LiDAR feature fusion."""
 
     def __init__(self, config: TransfuserConfig):
-
         super().__init__()
         self.config = config
 
@@ -144,7 +143,6 @@ class TransfuserBackbone(nn.Module):
             )
 
     def top_down(self, x):
-
         p5 = self.relu(self.c5_conv(x))
         p4 = self.relu(self.up_conv5(self.upsample(p5)))
         p3 = self.relu(self.up_conv4(self.upsample2(p4)))

@@ -38,9 +38,9 @@ class BatchIDMPolicy:
         num_parameter_policies = [len(item) for item in parameter_list if isinstance(item, list)]
 
         if len(num_parameter_policies) > 0:
-            assert all(
-                item == num_parameter_policies[0] for item in num_parameter_policies
-            ), "BatchIDMPolicy initial parameters must be float, or lists of equal length"
+            assert all(item == num_parameter_policies[0] for item in num_parameter_policies), (
+                "BatchIDMPolicy initial parameters must be float, or lists of equal length"
+            )
             num_policies = max(num_parameter_policies)
         else:
             num_policies = 1

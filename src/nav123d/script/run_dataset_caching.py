@@ -1,5 +1,4 @@
 import logging
-import os
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -27,7 +26,8 @@ def cache_features(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[
     Helper function to cache features and targets of learnable agent.
     :param args: arguments for caching
     """
-    node_id = int(os.environ.get("NODE_RANK", 0))
+    # node_id = int(os.environ.get("NODE_RANK", 0))
+    node_id = 0
     thread_id = str(uuid.uuid4())
 
     log_names = [a["log_file"] for a in args]
@@ -56,6 +56,7 @@ def cache_features(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[
         cache_path=cfg.cache_path,
         force_cache_computation=cfg.force_cache_computation,
     )
+    del dataset
     return []
 
 

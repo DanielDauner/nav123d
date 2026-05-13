@@ -3,9 +3,11 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from nav123d.geometry.trajectory import TrajectorySampling
 
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_comfort_metrics import ego_is_two_frame_extended_comfort
+from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_comfort_metrics import (
+    ego_is_two_frame_extended_comfort,
+)
 
 
 @dataclass
@@ -108,8 +110,7 @@ class SceneAggregator:
 
             weight_map = dict(zip(weights["token"], weights["weight"]))
 
-            for (now_token, prev_token) in self.second_stage:
-
+            for now_token, prev_token in self.second_stage:
                 two_frame_comfort = self._compute_two_frame_comfort(now_token, prev_token)
                 weight_now = weight_map[now_token]
                 weight_prev = weight_map[prev_token]

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 import torch
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
@@ -13,7 +13,7 @@ from nav123d.agents.transfuser.transfuser_features import TransfuserFeatureBuild
 from nav123d.agents.transfuser.transfuser_loss import transfuser_loss
 from nav123d.agents.transfuser.transfuser_model import TransfuserModel
 from nav123d.common.dataclasses import SensorConfig
-from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
+from nav123d.geometry.trajectory import TrajectorySampling
 
 
 class TransfuserAgent(AbstractAgent):

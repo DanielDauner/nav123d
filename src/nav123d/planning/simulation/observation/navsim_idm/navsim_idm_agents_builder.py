@@ -51,7 +51,7 @@ def build_idm_agents_on_map_rails(
     unique_agents: UniqueIDMAgents = {}
 
     detections = vehicle_current_tracks
-    map_api = map_api
+    # map_api = map_api
     ego_agent = ego_agent.agent
 
     open_loop_detections = detections.tracked_objects.get_tracked_objects_of_types(open_loop_detections_types)
@@ -66,7 +66,6 @@ def build_idm_agents_on_map_rails(
     for agent in detections.tracked_objects.get_tracked_objects_of_type(TrackedObjectType.VEHICLE):
         # filter for only vehicles
         if agent.track_token not in unique_agents:
-
             route, progress = get_starting_segment(agent, map_api)
 
             # Ignore agents that a baseline path cannot be built for

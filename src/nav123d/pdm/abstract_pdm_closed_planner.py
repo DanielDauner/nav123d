@@ -6,8 +6,8 @@ from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject
 from nuplan.planning.simulation.planner.abstract_planner import PlannerInput
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.abstract_pdm_planner import AbstractPDMPlanner
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
 from nav123d.planning.simulation.planner.pdm_planner.proposal.batch_idm_policy import BatchIDMPolicy
@@ -43,9 +43,9 @@ class AbstractPDMClosedPlanner(AbstractPDMPlanner):
 
         super(AbstractPDMClosedPlanner, self).__init__(map_radius)
 
-        assert (
-            trajectory_sampling.interval_length == proposal_sampling.interval_length
-        ), "AbstractPDMClosedPlanner: Proposals and Trajectory must have equal interval length!"
+        assert trajectory_sampling.interval_length == proposal_sampling.interval_length, (
+            "AbstractPDMClosedPlanner: Proposals and Trajectory must have equal interval length!"
+        )
 
         # config parameters
         self._trajectory_sampling: int = trajectory_sampling

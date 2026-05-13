@@ -1,7 +1,6 @@
-from nav123d.geometry.trajectory import TrajectorySampling
-
 from nav123d.agents.abstract_agent import AbstractAgent
 from nav123d.common.dataclasses import AgentInput, Scene, SensorConfig, Trajectory
+from nav123d.geometry.trajectory import TrajectorySampling
 
 
 class HumanAgent(AbstractAgent):

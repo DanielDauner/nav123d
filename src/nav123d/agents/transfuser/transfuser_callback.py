@@ -6,6 +6,7 @@ import numpy.typing as npt
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
+from nav123d.visualization.config import AGENT_CONFIG, MAP_LAYER_CONFIG
 from nuplan.common.actor_state.oriented_box import OrientedBox
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.maps.abstract_map import SemanticMapLayer
@@ -13,7 +14,6 @@ from PIL import ImageColor
 
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
-from nav123d.visualization.config import AGENT_CONFIG, MAP_LAYER_CONFIG
 
 
 class TransfuserCallback(pl.Callback):
@@ -162,7 +162,6 @@ def semantic_map_to_rgb(semantic_map: npt.NDArray[np.int64], config: TransfuserC
     rgb_map = np.ones((height, width, 3), dtype=np.uint8) * 255
 
     for label in range(1, config.num_bev_classes):
-
         if config.bev_semantic_classes[label][0] == "linestring":
             hex_color = MAP_LAYER_CONFIG[SemanticMapLayer.BASELINE_PATHS]["line_color"]
         else:

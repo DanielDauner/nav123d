@@ -2,13 +2,13 @@ from typing import Dict
 
 import numpy as np
 import torch
-import torch.nn as nn
-from nav123d.geometry.trajectory import TrajectorySampling
+from torch import nn
 
 from nav123d.agents.transfuser.transfuser_backbone import TransfuserBackbone
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
 from nav123d.common.enums import StateSE2Index
+from nav123d.geometry.trajectory import TrajectorySampling
 
 
 class TransfuserModel(nn.Module):

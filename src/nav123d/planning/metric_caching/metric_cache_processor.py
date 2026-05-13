@@ -17,11 +17,11 @@ from nuplan.planning.simulation.observation.observation_type import DetectionsTr
 from nuplan.planning.simulation.planner.abstract_planner import PlannerInitialization, PlannerInput
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 from nuplan.planning.training.experiments.cache_metadata_entry import CacheMetadataEntry
 
 from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.metric_caching.metric_cache import MapParameters, MetricCache
 from nav123d.planning.metric_caching.metric_caching_utils import StateInterpolator
 from nav123d.planning.scenario_builder.navsim_scenario import NavSimScenario
@@ -128,7 +128,6 @@ class MetricCacheProcessor:
         unique_detection_tracks: Dict[str, Any] = {}
 
         for time_s, detection_track in zip(relative_time_s, gt_detection_tracks):
-
             for tracked_object in detection_track.tracked_objects:
                 # log detection track
                 token = tracked_object.track_token
@@ -178,7 +177,6 @@ class MetricCacheProcessor:
                     interpolated_tracks.append(initial_detection_track)
 
                 elif interpolated_state is not None:
-
                     tracked_type = initial_detection_track.tracked_object_type
                     metadata = initial_detection_track.metadata  # copied since time stamp is ignored
 
@@ -232,7 +230,6 @@ class MetricCacheProcessor:
         return pdm_observation
 
     def _interpolate_traffic_light_status(self, scenario: NavSimScenario) -> List[List[TrafficLightStatusData]]:
-
         time_horizon = self._proposal_sampling.time_horizon  # [s]
         interpolate_step = self._proposal_sampling.interval_length  # [s]
 

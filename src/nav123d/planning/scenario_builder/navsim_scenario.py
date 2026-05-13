@@ -17,9 +17,9 @@ from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.database.maps_db.gpkg_mapsdb import MAP_LOCATIONS
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks, SensorChannel, Sensors
-from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import Scene
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.scenario_builder.navsim_scenario_utils import (
     annotations_to_detection_tracks,
     ego_status_to_ego_state,
@@ -176,9 +176,9 @@ class NavSimScenario(AbstractScenario):
                 f"Iteration {frame_idx} out of bound of {self.get_number_of_iterations()} iterations! Using latest ego state instead"
             )
             frame_idx = self.get_number_of_iterations() - 1
-        assert (
-            0 <= frame_idx < self.get_number_of_iterations()
-        ), f"Iteration {frame_idx} out of bound of {self.get_number_of_iterations()} iterations!"
+        assert 0 <= frame_idx < self.get_number_of_iterations(), (
+            f"Iteration {frame_idx} out of bound of {self.get_number_of_iterations()} iterations!"
+        )
 
         return ego_status_to_ego_state(
             ego_status=self._scene.frames[frame_idx].ego_status,

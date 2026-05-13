@@ -1,7 +1,6 @@
 import logging
 import pickle
 import traceback
-from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -13,7 +12,6 @@ from hydra.utils import instantiate
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.geometry.convert import relative_to_absolute_poses
 from nuplan.planning.script.builders.logging_builder import build_logger
-from nav123d.geometry.trajectory import TrajectorySampling
 from omegaconf import DictConfig
 from tqdm import tqdm
 
@@ -21,6 +19,7 @@ from nav123d.common.dataclasses import PDMResults, Trajectory
 from nav123d.common.dataloader import MetricCacheLoader
 from nav123d.common.enums import SceneFrameType
 from nav123d.evaluate.pdm_score import pdm_score
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
 from nav123d.planning.simulation.planner.pdm_planner.scoring.scene_aggregator import SceneAggregator
 from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
@@ -153,9 +152,9 @@ def compute_final_scores(pdm_score_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = pdm_score_df.reset_index()
 
-    assert (
-        not df["two_frame_extended_comfort"].isna().any()
-    ), "Found NaN in 'two_frame_extended_comfort'. Please check aggregator completeness."
+    assert not df["two_frame_extended_comfort"].isna().any(), (
+        "Found NaN in 'two_frame_extended_comfort'. Please check aggregator completeness."
+    )
 
     two_frame_scores = df["two_frame_extended_comfort"].to_numpy()
     weighted_metrics = np.stack(df["weighted_metrics"].to_numpy())  # shape: (N, M)
@@ -213,7 +212,6 @@ def calculate_individual_mapping_scores(
     stage2_group_scores = []
 
     for (orig_token, prev_token), second_stage_pairs in all_mappings.items():
-
         first_tokens = [pair[0] for pair in second_stage_pairs if len(pair) > 0]
         second_tokens = [pair[1] for pair in second_stage_pairs if len(pair) > 1]
 
@@ -254,7 +252,6 @@ def create_scene_aggregators(
     full_score_df: pd.DataFrame,
     proposal_sampling: TrajectorySampling,
 ) -> pd.DataFrame:
-
     full_score_df["two_frame_extended_comfort"] = np.nan
     full_score_df["weight"] = np.nan
     full_score_df = full_score_df.set_index("token")
@@ -295,9 +292,9 @@ def main(cfg: DictConfig) -> None:
     scorer: PDMScorer = instantiate(cfg.scorer)
 
     build_logger(cfg)
-    assert (
-        simulator.proposal_sampling == scorer.proposal_sampling
-    ), "Simulator and scorer proposal sampling has to be identical"
+    assert simulator.proposal_sampling == scorer.proposal_sampling, (
+        "Simulator and scorer proposal sampling has to be identical"
+    )
 
     with open(submission_file_path, "rb") as f:
         submission_data = pickle.load(f)
@@ -305,9 +302,9 @@ def main(cfg: DictConfig) -> None:
     first_stage_output: Dict[str, Trajectory] = submission_data["first_stage_predictions"]
     second_stage_output: Dict[str, Trajectory] = submission_data["second_stage_predictions"]
 
-    assert (
-        len(first_stage_output) == 1 and len(second_stage_output) == 1
-    ), "Multi-seed evaluation currently not supported in run_pdm_score!"
+    assert len(first_stage_output) == 1 and len(second_stage_output) == 1, (
+        "Multi-seed evaluation currently not supported in run_pdm_score!"
+    )
     first_stage_output = first_stage_output[0]
     second_stage_output = second_stage_output[0]
 
@@ -353,14 +350,15 @@ def main(cfg: DictConfig) -> None:
     else:
         failed_tokens = []
 
-    score_cols = [
-        c
-        for c in pdm_score_df.columns
-        if (
-            (any(score.name in c for score in fields(PDMResults)) or c == "two_frame_extended_comfort" or c == "score")
-            and c != "pdm_score"
-        )
-    ]
+    # score_cols = [
+    #     c
+    #     for c in pdm_score_df.columns
+    #     if (
+    #         (any(score.name in c for score in fields(PDMResults)) or c == "two_frame_extended_comfort" or c == "score")
+    #         and c != "pdm_score"
+    #     )
+    # ]
+    score_cols = []
 
     pcl_group_score, pcl_stage1_score, pcl_stage2_score = calculate_individual_mapping_scores(
         pdm_score_df[score_cols + ["token", "weight"]], all_mappings

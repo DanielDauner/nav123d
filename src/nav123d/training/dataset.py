@@ -272,9 +272,9 @@ class Dataset(torch.utils.data.Dataset):
         targets: Dict[str, torch.Tensor] = {}
 
         if self._cache_path is not None:
-            assert (
-                token in self._valid_cache_paths.keys()
-            ), f"The token {token} has not been cached yet, please call cache_dataset first!"
+            assert token in self._valid_cache_paths.keys(), (
+                f"The token {token} has not been cached yet, please call cache_dataset first!"
+            )
 
             features, targets = self._load_scene_with_token(token)
         else:

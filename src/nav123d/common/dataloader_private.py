@@ -1,11 +1,13 @@
-# dataloader only for private test
+"TODO: Complete delete after refactoring"
+
 from __future__ import annotations
 
 import lzma
 import pickle
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-from collections import defaultdict
+
 from tqdm import tqdm
 
 from nav123d.common.dataclasses import AgentInput, Scene, SceneFilter, SensorConfig
@@ -14,30 +16,25 @@ from nav123d.planning.metric_caching.metric_cache import MetricCache
 FrameList = List[Dict[str, Any]]
 
 
-import pickle
-from pathlib import Path
-from collections import defaultdict
-from tqdm import tqdm
-
 def group_frames_by_sequence(file_path, sequence_length=4):
-
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         scene_dict_list = pickle.load(f)
     scene_groups = defaultdict(list)
     for frame in scene_dict_list:
-        scene_token = frame['scene_token']
+        scene_token = frame["scene_token"]
         scene_groups[scene_token].append(frame)
-    
+
     for scene_token in scene_groups:
-        scene_groups[scene_token].sort(key=lambda x: x['frame_idx'])
-    
+        scene_groups[scene_token].sort(key=lambda x: x["frame_idx"])
+
     sequence_groups = []
     for scene_token, frames in tqdm(scene_groups.items(), desc="Loading original scenes"):
         if len(frames) == 5:
             sequence_groups.append(frames[0:4])
             sequence_groups.append(frames[1:5])
-    
+
     return sequence_groups
+
 
 def filter_scenes(data_path: Path, scene_filter: SceneFilter) -> Tuple[Dict[str, FrameList], List[str]]:
     """
@@ -57,7 +54,6 @@ def filter_scenes(data_path: Path, scene_filter: SceneFilter) -> Tuple[Dict[str,
     scene_dict_list = group_frames_by_sequence(log_files[0])
 
     for frame_list in scene_dict_list:
-
         # Filter by token
         token = frame_list[scene_filter.num_history_frames - 1]["token"]
         if filter_tokens and token not in tokens:
@@ -68,10 +64,9 @@ def filter_scenes(data_path: Path, scene_filter: SceneFilter) -> Tuple[Dict[str,
     return filtered_scenes
 
 
-
 def filter_synthetic_scenes(
-    data_path: Path, 
-    scene_filter: SceneFilter, 
+    data_path: Path,
+    scene_filter: SceneFilter,
     sensor_config: SensorConfig = SensorConfig.build_no_sensors(),
     sensor_blobs_path: Path = None,
 ) -> Dict[str, Tuple[Path, str]]:
@@ -82,26 +77,29 @@ def filter_synthetic_scenes(
     filter_initial_tokens = scene_filter.reactive_synthetic_initial_tokens is not None
 
     for scene_path in tqdm(synthetic_scenes_paths, desc="Loading synthetic scenes"):
-
         with open(scene_path, "rb") as f:
             scene_dict_list = pickle.load(f)
 
         synthetic_scene_pre = Scene.from_scene_dict_list_private(
             scene_dict_list[:-1],
             sensor_blobs_path,
-            scene_filter.num_history_frames, 
+            scene_filter.num_history_frames,
             scene_filter.num_future_frames,
-            sensor_config=sensor_config)
-        
+            sensor_config=sensor_config,
+        )
+
         synthetic_scene_now = Scene.from_scene_dict_list_private(
             scene_dict_list[1:],
             sensor_blobs_path,
-            scene_filter.num_history_frames, 
+            scene_filter.num_history_frames,
             scene_filter.num_future_frames,
-            sensor_config=sensor_config)
+            sensor_config=sensor_config,
+        )
 
-
-        if filter_initial_tokens and synthetic_scene_pre.scene_metadata.initial_token not in scene_filter.reactive_synthetic_initial_tokens:
+        if (
+            filter_initial_tokens
+            and synthetic_scene_pre.scene_metadata.initial_token not in scene_filter.reactive_synthetic_initial_tokens
+        ):
             continue
 
         loaded_scenes.update({synthetic_scene_pre.scene_metadata.initial_token: synthetic_scene_pre})
@@ -138,9 +136,9 @@ class SceneLoader:
         self._sensor_config = sensor_config
 
         if scene_filter.include_synthetic_scenes:
-            assert (
-                synthetic_scenes_path is not None
-            ), "Synthetic scenes path cannot be None, when synthetic scenes_filter.include_synthetic_scenes is set to True."
+            assert synthetic_scenes_path is not None, (
+                "Synthetic scenes path cannot be None, when synthetic scenes_filter.include_synthetic_scenes is set to True."
+            )
             self.synthetic_scenes = filter_synthetic_scenes(
                 data_path=synthetic_scenes_path,
                 scene_filter=scene_filter,

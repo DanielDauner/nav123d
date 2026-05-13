@@ -65,7 +65,8 @@ def cache_scenarios(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List
 
             return processor.compute_and_save_metric_cache(scenario)
 
-        node_id = int(os.environ.get("NODE_RANK", 0))
+        # node_id = int(os.environ.get("NODE_RANK", 0))
+        node_id = 0
         thread_id = str(uuid.uuid4())
 
         log_names = [a["log_file"] for a in args]
@@ -189,7 +190,8 @@ def cache_data(cfg: DictConfig, worker: WorkerPool) -> None:
         if cache_metadata_entry is not None
     ]
 
-    node_id = int(os.environ.get("NODE_RANK", 0))
+    # node_id = int(os.environ.get("NODE_RANK", 0))
+    node_id = 0
     logger.info(f"Node {node_id}: Storing metadata csv file containing cache paths for valid features and targets...")
     save_cache_metadata(cached_metadata, Path(cfg.metric_cache_path), node_id)
     logger.info("Done storing metadata csv file.")

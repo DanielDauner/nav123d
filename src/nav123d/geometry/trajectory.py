@@ -1,14 +1,12 @@
-from py123d.common.utils.mixin import ArrayMixin
-
-
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
 from typing import Optional, cast
 
+import numpy as np
 import numpy.typing as npt
-
+from py123d.common.utils.mixin import ArrayMixin
 
 PROXIMITY_ABS_TOL = 1e-10
 

@@ -1,8 +1,6 @@
 import logging
-import os
 import traceback
 import uuid
-from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
@@ -14,7 +12,6 @@ from hydra.utils import instantiate
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.geometry.convert import relative_to_absolute_poses
 from nuplan.planning.script.builders.logging_builder import build_logger
-from nav123d.geometry.trajectory import TrajectorySampling
 from nuplan.planning.utils.multithreading.worker_utils import worker_map
 from omegaconf import DictConfig
 
@@ -23,6 +20,7 @@ from nav123d.common.dataclasses import PDMResults, SensorConfig
 from nav123d.common.dataloader import MetricCacheLoader, SceneFilter, SceneLoader
 from nav123d.common.enums import SceneFrameType
 from nav123d.evaluate.pdm_score import pdm_score
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.script.builders.worker_pool_builder import build_worker
 from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
 from nav123d.planning.simulation.planner.pdm_planner.scoring.scene_aggregator import SceneAggregator
@@ -41,7 +39,8 @@ def run_pdm_score(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[p
     Helper function to run PDMS evaluation in.
     :param args: input arguments
     """
-    node_id = int(os.environ.get("NODE_RANK", 0))
+    # node_id = int(os.environ.get("NODE_RANK", 0))
+    node_id = 0
     thread_id = str(uuid.uuid4())
     logger.info(f"Starting worker in thread_id={thread_id}, node_id={node_id}")
 
@@ -51,9 +50,9 @@ def run_pdm_score(args: List[Dict[str, Union[List[str], DictConfig]]]) -> List[p
 
     simulator: PDMSimulator = instantiate(cfg.simulator)
     scorer: PDMScorer = instantiate(cfg.scorer)
-    assert (
-        simulator.proposal_sampling == scorer.proposal_sampling
-    ), "Simulator and scorer proposal sampling has to be identical"
+    assert simulator.proposal_sampling == scorer.proposal_sampling, (
+        "Simulator and scorer proposal sampling has to be identical"
+    )
     agent: AbstractAgent = instantiate(cfg.agent)
     agent.initialize()
 
@@ -194,9 +193,9 @@ def compute_final_scores(pdm_score_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = pdm_score_df.reset_index()
 
-    assert (
-        not df["two_frame_extended_comfort"].isna().any()
-    ), "Found NaN in 'two_frame_extended_comfort'. Please check aggregator completeness."
+    assert not df["two_frame_extended_comfort"].isna().any(), (
+        "Found NaN in 'two_frame_extended_comfort'. Please check aggregator completeness."
+    )
 
     two_frame_scores = df["two_frame_extended_comfort"].to_numpy()
     weighted_metrics = np.stack(df["weighted_metrics"].to_numpy())  # shape: (N, M)
@@ -254,7 +253,6 @@ def calculate_individual_mapping_scores(
     stage2_group_scores = []
 
     for (orig_token, prev_token), second_stage_pairs in all_mappings.items():
-
         first_tokens = [pair[0] for pair in second_stage_pairs if len(pair) > 0]
         second_tokens = [pair[1] for pair in second_stage_pairs if len(pair) > 1]
 
@@ -295,7 +293,6 @@ def create_scene_aggregators(
     full_score_df: pd.DataFrame,
     proposal_sampling: TrajectorySampling,
 ) -> pd.DataFrame:
-
     full_score_df["two_frame_extended_comfort"] = np.nan
     full_score_df["weight"] = np.nan
     full_score_df = full_score_df.set_index("token")
@@ -391,14 +388,15 @@ def main(cfg: DictConfig) -> None:
     else:
         failed_tokens = []
 
-    score_cols = [
-        c
-        for c in pdm_score_df.columns
-        if (
-            (any(score.name in c for score in fields(PDMResults)) or c == "two_frame_extended_comfort" or c == "score")
-            and c != "pdm_score"
-        )
-    ]
+    # score_cols = [
+    #     c
+    #     for c in pdm_score_df.columns
+    #     if (
+    #         (any(score.name in c for score in fields(PDMResults)) or c == "two_frame_extended_comfort" or c == "score")
+    #         and c != "pdm_score"
+    #     )
+    # ]
+    score_cols = []
 
     pcl_group_score, pcl_stage1_score, pcl_stage2_score = calculate_individual_mapping_scores(
         pdm_score_df[score_cols + ["token", "weight"]], all_mappings

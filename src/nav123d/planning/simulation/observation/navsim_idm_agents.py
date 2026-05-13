@@ -102,7 +102,11 @@ class NavsimIDMAgents(IDMAgents):
         :param objects_future_tracks: Future tracked objects for open-loop detections.
         :return: DetectionsTracks object containing active agents and open-loop detections.
         """
-        detections = self._get_idm_agent_manager(ego_state, vehicle_current_tracks, map_api,).get_active_agents(
+        detections = self._get_idm_agent_manager(
+            ego_state,
+            vehicle_current_tracks,
+            map_api,
+        ).get_active_agents(
             self.current_iteration,
             self._planned_trajectory_samples,
             self._planned_trajectory_sample_interval,
@@ -191,7 +195,11 @@ class NavsimIDMAgents(IDMAgents):
         self.current_iteration = iteration
         tspan = 0.1  # Fixed time step (e.g., 0.1 seconds)
 
-        self._get_idm_agent_manager(ego_state, vehicle_current_tracks, map_api,).propagate_agents(
+        self._get_idm_agent_manager(
+            ego_state,
+            vehicle_current_tracks,
+            map_api,
+        ).propagate_agents(
             ego_state,
             tspan,
             self.current_iteration,

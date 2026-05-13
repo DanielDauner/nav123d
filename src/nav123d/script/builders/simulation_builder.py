@@ -3,7 +3,6 @@ import os
 from typing import List, Optional
 
 from hydra.utils import instantiate
-from nuplan.common.utils.distributed_scenario_filter import DistributedMode, DistributedScenarioFilter
 from nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario_builder import NuPlanScenarioBuilder
 from nuplan.planning.script.builders.metric_builder import build_metrics_engines
 from nuplan.planning.script.builders.utils.utils_type import is_target_type
@@ -59,16 +58,19 @@ def build_simulations(
     ):
         raise ValueError(f"Simulation framework only runs with NuPlanScenarioBuilder. Got {cfg.scenario_builder}")
 
-    scenario_filter = DistributedScenarioFilter(
-        cfg=cfg,
-        worker=worker,
-        node_rank=int(os.environ.get("NODE_RANK", 0)),
-        num_nodes=int(os.environ.get("NUM_NODES", 1)),
-        synchronization_path=cfg.output_dir,
-        timeout_seconds=cfg.distributed_timeout_seconds,
-        distributed_mode=DistributedMode[cfg.distributed_mode],
-    )
-    scenarios = scenario_filter.get_scenarios()
+    # TODO: change this code haha.
+    # scenario_filter = DistributedScenarioFilter(
+    #     cfg=cfg,
+    #     worker=worker,
+    #     node_rank=int(os.environ.get("NODE_RANK", 0)),
+    #     num_nodes=int(os.environ.get("NUM_NODES", 1)),
+    #     synchronization_path=cfg.output_dir,
+    #     timeout_seconds=cfg.distributed_timeout_seconds,
+    #     distributed_mode=DistributedMode[cfg.distributed_mode],
+    # )
+    # scenarios = scenario_filter.get_scenarios()
+
+    scenarios = []
 
     metric_engines_map = {}
     if cfg.run_metric:
@@ -82,7 +84,6 @@ def build_simulations(
 
     # Build a metric metadata file
     for scenario in scenarios:
-
         # Build planners
         if pre_built_planners is None:
             if "planner" not in cfg.keys():

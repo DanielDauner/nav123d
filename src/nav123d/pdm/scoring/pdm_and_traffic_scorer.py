@@ -15,10 +15,10 @@ from nuplan.common.maps.maps_datatypes import SemanticMapLayer
 from nuplan.common.maps.nuplan_map.map_factory import get_maps_api
 from nuplan.common.maps.nuplan_map.nuplan_map import NuPlanMap
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
-from nav123d.geometry.trajectory import TrajectorySampling
 from shapely import Point
 
 from nav123d.common.dataclasses import PDMResults
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.metric_caching.metric_cache import MapParameters
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_occupancy_map import PDMDrivableMap
@@ -124,7 +124,6 @@ class PDMTrafficScorer(PDMScorer):
         ego_tracked_objects: List[Agent],
         agent_token: str,
     ) -> PDMObservation:
-
         agent_centric_observation = deepcopy(observation)
 
         # remove target agent tracks from observation
@@ -164,7 +163,6 @@ class PDMTrafficScorer(PDMScorer):
         map_parameters: MapParameters,
         simulated_agent_detections_tracks: List[DetectionsTracks],
     ) -> List[pd.DataFrame]:
-
         map_api = get_maps_api(map_parameters.map_root, map_parameters.map_version, map_parameters.map_name)
 
         # Observations need to be one second longer than the ego-trajectory to calculate ego ttc metrics

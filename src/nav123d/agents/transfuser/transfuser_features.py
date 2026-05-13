@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 import torch
+from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 from nuplan.common.actor_state.oriented_box import OrientedBox
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.actor_state.tracked_objects_types import TrackedObjectType
-from nuplan.common.maps.abstract_map import AbstractMap, MapObject, SemanticMapLayer
-from nav123d.geometry.trajectory import TrajectorySampling
+from nuplan.common.maps.abstract_map import AbstractMap, SemanticMapLayer
 from shapely import affinity
 from shapely.geometry import LineString, Polygon
 from torchvision import transforms
@@ -17,8 +17,8 @@ from torchvision import transforms
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.common.dataclasses import AgentInput, Annotations, Scene
 from nav123d.common.enums import BoundingBoxIndex, LidarIndex
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.scenario_builder.navsim_scenario_utils import tracked_object_types
-from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 
 class TransfuserFeatureBuilder(AbstractFeatureBuilder):
@@ -308,24 +308,22 @@ class TransfuserTargetBuilder(AbstractTargetBuilder):
         box_polygon_mask = np.rot90(box_polygon_mask)[::-1]
         return box_polygon_mask > 0
 
-    @staticmethod
-    def _query_map_objects(
-        self, map_api: AbstractMap, ego_pose: StateSE2, layers: List[SemanticMapLayer]
-    ) -> List[MapObject]:
-        """
-        Queries map objects
-        :param map_api: map interface of nuPlan
-        :param ego_pose: ego pose in global frame
-        :param layers: map layers
-        :return: list of map objects
-        """
+    # @staticmethod
+    # def _query_map_objects(map_api: AbstractMap, ego_pose: StateSE2, layers: List[SemanticMapLayer]) -> List[MapObject]:
+    #     """
+    #     Queries map objects
+    #     :param map_api: map interface of nuPlan
+    #     :param ego_pose: ego pose in global frame
+    #     :param layers: map layers
+    #     :return: list of map objects
+    #     """
 
-        # query map api with interesting layers
-        map_object_dict = map_api.get_proximal_map_objects(point=ego_pose.point, radius=self, layers=layers)
-        map_objects: List[MapObject] = []
-        for layer in layers:
-            map_objects += map_object_dict[layer]
-        return map_objects
+    #     # query map api with interesting layers
+    #     map_object_dict = map_api.get_proximal_map_objects(point=ego_pose.point, radius=self, layers=layers)
+    #     map_objects: List[MapObject] = []
+    #     for layer in layers:
+    #         map_objects += map_object_dict[layer]
+    #     return map_objects
 
     @staticmethod
     def _geometry_local_coords(geometry: Any, origin: StateSE2) -> Any:

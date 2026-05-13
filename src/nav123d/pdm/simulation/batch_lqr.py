@@ -98,9 +98,9 @@ class BatchLQRTracker:
         # Common LQR Parameters
         # Note we want a horizon > 1 so that steering rate actually can impact lateral/heading error in discrete time.
         assert discretization_time > 0.0, "The discretization_time should be positive."
-        assert (
-            tracking_horizon > 1
-        ), "We expect the horizon to be greater than 1 - else steering_rate has no impact with Euler integration."
+        assert tracking_horizon > 1, (
+            "We expect the horizon to be greater than 1 - else steering_rate has no impact with Euler integration."
+        )
         self._discretization_time = discretization_time
         self._tracking_horizon = tracking_horizon
         self._wheel_base = vehicle.wheel_base
@@ -146,13 +146,15 @@ class BatchLQRTracker:
         assert self._initialized, "BatchLQRTracker: Run update first to load proposal states!"
 
         batch_size = len(initial_states)
-        (initial_velocity, initial_lateral_state_vector,) = self._compute_initial_velocity_and_lateral_state(
-            current_iteration, initial_states
-        )  # (batch), (batch, 3)
+        (
+            initial_velocity,
+            initial_lateral_state_vector,
+        ) = self._compute_initial_velocity_and_lateral_state(current_iteration, initial_states)  # (batch), (batch, 3)
 
-        (reference_velocities, curvature_profiles,) = self._compute_reference_velocity_and_curvature_profile(
-            current_iteration
-        )  # (batch), (batch, 10)
+        (
+            reference_velocities,
+            curvature_profiles,
+        ) = self._compute_reference_velocity_and_curvature_profile(current_iteration)  # (batch), (batch, 10)
 
         # create output arrays
         accel_cmds = np.zeros(batch_size, dtype=np.float64)

@@ -71,10 +71,10 @@ The main branch contains the code for NAVSIM v2, used in the 2025 NAVSIM challen
 ## Changelog <a name="changelog"></a>
 - **`[2025/09/29]`** Bugfix
   - Fixed a bug in metric filtering where `"multiplicative_metrics_prod"` and `"weighted_metrics"` were not correctly excluded by the human filter (see [Issue #151](https://github.com/autonomousvision/navsim/issues/151#issue-3379282167)).
-- **`[2025/07/16]`** **[[ICCV] Hugging Face Warmup leaderboard](https://huggingface.co/spaces/AGC2025/e2e-driving-warmup-iccv)**   release 
-  - This release introduces a **registration system**:  
-    - After logging in with your Hugging Face account, click Register and fill in your team information  
-    - The admin will review your registration request within 24 hours  
+- **`[2025/07/16]`** **[[ICCV] Hugging Face Warmup leaderboard](https://huggingface.co/spaces/AGC2025/e2e-driving-warmup-iccv)**   release
+  - This release introduces a **registration system**:
+    - After logging in with your Hugging Face account, click Register and fill in your team information
+    - The admin will review your registration request within 24 hours
 - **`[2025/04/28]`** NAVSIM v2.2 release (official devkit version for [AGC 2025](https://opendrivelab.com/challenge2025/#navsim-e2e-driving))
   - Release of `private_test_hard` dataset (see [splits](docs/splits.md)) for the [HuggingFace NAVSIM v2 End-to-End Driving Challenge 2025 Leaderboard](https://huggingface.co/spaces/AGC2025/e2e-driving-2025).
     - The submission deadline is 2025-05-11 00:00:00 UTC
@@ -126,11 +126,11 @@ The main branch contains the code for NAVSIM v2, used in the 2025 NAVSIM challen
 All assets and code in this repository are under the [Apache 2.0 license](./LICENSE) unless specified otherwise. The datasets (including nuPlan and OpenScene) inherit their own distribution licenses. Please consider citing our papers if they help your research.
 
 ```BibTeX
-@inproceedings{Cao2025CORL, 
-	author = {Wei Cao and Marcel Hallgarten and Tianyu Li and Daniel Dauner and Xunjiang Gu and Caojun Wang and Yakov Miron and Marco Aiello and Hongyang Li and Igor Gilitschenski and Boris Ivanovic and Marco Pavone and Andreas Geiger and Kashyap Chitta}, 
-	title = {Pseudo-Simulation for Autonomous Driving}, 
-	booktitle = {Conference on Robot Learning (CoRL)}, 
-	year = {2025}, 
+@inproceedings{Cao2025CORL,
+	author = {Wei Cao and Marcel Hallgarten and Tianyu Li and Daniel Dauner and Xunjiang Gu and Caojun Wang and Yakov Miron and Marco Aiello and Hongyang Li and Igor Gilitschenski and Boris Ivanovic and Marco Pavone and Andreas Geiger and Kashyap Chitta},
+	title = {Pseudo-Simulation for Autonomous Driving},
+	booktitle = {Conference on Robot Learning (CoRL)},
+	year = {2025},
 }
 ```
 

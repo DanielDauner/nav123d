@@ -20,7 +20,7 @@ def _build_planner(planner_cfg: DictConfig, scenario: Optional[AbstractScenario]
 
     if planner_cls.requires_scenario:
         assert scenario is not None, (
-            "Scenario was not provided to build the planner. " f"Planner {config} can not be build!"
+            f"Scenario was not provided to build the planner. Planner {config} can not be build!"
         )
         planner = cast(AbstractPlanner, instantiate(config, scenario=scenario))
     else:

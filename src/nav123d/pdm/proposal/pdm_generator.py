@@ -11,10 +11,10 @@ from nuplan.common.actor_state.state_representation import StateSE2, TimePoint
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
 from nuplan.common.geometry.transform import transform
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 from shapely.geometry import Point, Polygon
 from shapely.geometry.base import CAP_STYLE
 
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.observation.pdm_observation import PDMObservation
 from nav123d.planning.simulation.planner.pdm_planner.proposal.pdm_proposal import PDMProposalManager
 from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import state_array_to_ego_states
@@ -37,9 +37,9 @@ class PDMGenerator:
         :param proposal_sampling: Sampling parameters for proposals
         :param leading_agent_update_rate: sample update-rate of leading agent state, defaults to 2
         """
-        assert (
-            trajectory_sampling.interval_length == proposal_sampling.interval_length
-        ), "PDMGenerator: Proposals and Trajectory must have equal interval length!"
+        assert trajectory_sampling.interval_length == proposal_sampling.interval_length, (
+            "PDMGenerator: Proposals and Trajectory must have equal interval length!"
+        )
 
         # trajectory config
         self._trajectory_sampling: int = trajectory_sampling
@@ -102,9 +102,9 @@ class PDMGenerator:
         :param proposal_idx: index of best-scored proposal
         :return: InterpolatedTrajectory class
         """
-        assert (
-            len(self._time_point_list) == self._proposal_sampling.num_poses + 1
-        ), "PDMGenerator: Proposals must be generated first!"
+        assert len(self._time_point_list) == self._proposal_sampling.num_poses + 1, (
+            "PDMGenerator: Proposals must be generated first!"
+        )
 
         lateral_batch_idcs = [proposal_idx]
         current_time_point = copy.deepcopy(self._time_point_list[-1])

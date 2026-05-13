@@ -30,9 +30,9 @@ class PDMOccupancyMap:
         :param geometries: list/array of polygons
         :param node_capacity: max number of child nodes in str-tree, defaults to 10
         """
-        assert len(tokens) == len(
-            geometries
-        ), f"PDMOccupancyMap: Tokens/Geometries ({len(tokens)}/{len(geometries)}) have unequal length!"
+        assert len(tokens) == len(geometries), (
+            f"PDMOccupancyMap: Tokens/Geometries ({len(tokens)}/{len(geometries)}) have unequal length!"
+        )
 
         # attribute
         self._tokens = tokens
@@ -105,9 +105,9 @@ class PDMDrivableMap(PDMOccupancyMap):
         geometries: npt.NDArray[np.object_],
         node_capacity: int = 10,
     ):
-        assert (
-            len(tokens) == len(geometries) == len(map_types)
-        ), f"PDMDrivableMap: Tokens/Geometries/Types ({len(tokens)}/{len(geometries)}/{len(map_types)}) have unequal length!"
+        assert len(tokens) == len(geometries) == len(map_types), (
+            f"PDMDrivableMap: Tokens/Geometries/Types ({len(tokens)}/{len(geometries)}/{len(map_types)}) have unequal length!"
+        )
 
         super().__init__(tokens=tokens, geometries=geometries, node_capacity=node_capacity)
 

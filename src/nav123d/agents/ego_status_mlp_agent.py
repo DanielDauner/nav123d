@@ -1,12 +1,12 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from nav123d.geometry.trajectory import TrajectorySampling
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
 from nav123d.agents.abstract_agent import AbstractAgent
 from nav123d.common.dataclasses import AgentInput, Scene, SensorConfig
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 

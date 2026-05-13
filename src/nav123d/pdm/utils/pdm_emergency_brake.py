@@ -6,8 +6,8 @@ from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import StateSE2, StateVector2D, TimePoint
 from nuplan.common.geometry.convert import relative_to_absolute_poses
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
 
 

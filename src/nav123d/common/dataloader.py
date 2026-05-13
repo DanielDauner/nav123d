@@ -1,3 +1,5 @@
+"TODO: Complete delete after refactoring"
+
 from __future__ import annotations
 
 import lzma
@@ -42,7 +44,6 @@ def filter_scenes(data_path: Path, scene_filter: SceneFilter) -> Tuple[Dict[str,
         filter_tokens = False
 
     for log_pickle_path in tqdm(log_files, desc="Loading logs"):
-
         scene_dict_list = pickle.load(open(log_pickle_path, "rb"))
         for frame_list in split_list(scene_dict_list, scene_filter.num_frames, scene_filter.frame_interval):
             # Filter scenes which are too short
@@ -135,9 +136,9 @@ class SceneLoader:
         self._sensor_config = sensor_config
 
         if scene_filter.include_synthetic_scenes:
-            assert (
-                synthetic_scenes_path is not None
-            ), "Synthetic scenes path cannot be None, when synthetic scenes_filter.include_synthetic_scenes is set to True."
+            assert synthetic_scenes_path is not None, (
+                "Synthetic scenes path cannot be None, when synthetic scenes_filter.include_synthetic_scenes is set to True."
+            )
             self.synthetic_scenes = filter_synthetic_scenes(
                 data_path=synthetic_scenes_path,
                 scene_filter=scene_filter,

@@ -54,7 +54,6 @@ class StateInterpolator:
         :return: interpolated state
         """
         if self.start_time <= time <= self.end_time:
-
             interpolated_state = self._interpolator(time)
             interpolated_state[2] = normalize_angle(interpolated_state[2])
             return interpolated_state

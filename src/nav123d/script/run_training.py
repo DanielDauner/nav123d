@@ -99,12 +99,12 @@ def main(cfg: DictConfig) -> None:
 
     if cfg.use_cache_without_dataset:
         logger.info("Using cached data without building SceneLoader")
-        assert (
-            not cfg.force_cache_computation
-        ), "force_cache_computation must be False when using cached data without building SceneLoader"
-        assert (
-            cfg.cache_path is not None
-        ), "cache_path must be provided when using cached data without building SceneLoader"
+        assert not cfg.force_cache_computation, (
+            "force_cache_computation must be False when using cached data without building SceneLoader"
+        )
+        assert cfg.cache_path is not None, (
+            "cache_path must be provided when using cached data without building SceneLoader"
+        )
         train_data = CacheOnlyDataset(
             cache_path=cfg.cache_path,
             feature_builders=agent.get_feature_builders(),

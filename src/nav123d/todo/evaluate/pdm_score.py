@@ -3,6 +3,11 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
+from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
+from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import ego_states_to_state_array
+from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import WeightedMetricIndex
+from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import AbstractTrafficAgentsPolicy
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import StateSE2, TimePoint
 from nuplan.common.geometry.convert import relative_to_absolute_poses
@@ -10,17 +15,12 @@ from nuplan.planning.simulation.planner.ml_planner.transform_utils import (
     _get_fixed_timesteps,
     _se2_vel_acc_to_ego_state,
 )
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_enums import WeightedMetricIndex
 from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from nav123d.geometry.trajectory import TrajectorySampling
 
 from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
+from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.metric_caching.metric_cache import MetricCache
-from nav123d.planning.simulation.planner.pdm_planner.scoring.pdm_scorer import PDMScorer
-from nav123d.planning.simulation.planner.pdm_planner.simulation.pdm_simulator import PDMSimulator
-from nav123d.planning.simulation.planner.pdm_planner.utils.pdm_array_representation import ego_states_to_state_array
-from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import AbstractTrafficAgentsPolicy
 
 
 def transform_trajectory(pred_trajectory: Trajectory, initial_ego_state: EgoState) -> InterpolatedTrajectory:
@@ -148,9 +148,7 @@ def pdm_score_from_interpolated_trajectory(
     # infer traffic agents policy and update future observation
     simulated_agent_detections_tracks = traffic_agents_policy.simulate_environment(simulated_states[1], metric_cache)
 
-    assert (
-        len(simulated_agent_detections_tracks) == trajectory_states.shape[1]
-    ), f"""
+    assert len(simulated_agent_detections_tracks) == trajectory_states.shape[1], f"""
             Traffic agents policy returned trajectories of invalid length:
             Traffic agents trajectories must be of length ego_trajectory_length = {trajectory_states.shape[1]},
             but got {len(simulated_agent_detections_tracks)}
@@ -190,32 +188,32 @@ def pdm_score_from_interpolated_trajectory(
             metric_cache.map_parameters,
             human_simulated_agent_detections_tracks,
         )[0]
-        
+
         skip_columns = {"multiplicative_metrics_prod", "weighted_metrics", "weighted_metrics_array", "pdm_score"}
-        
+
         modified_any = False
         for column in human_pdm_result.columns:
             if column not in skip_columns and human_pdm_result[column].iloc[0] == 0:
                 pdm_result.at[0, column] = 1
                 modified_any = True
-        
+
         # If any individual metrics were modified, recalculate all metrics for consistency
         if modified_any:
             # 1. Recalculate multiplicative_metrics_prod (product of binary metrics)
             pdm_result.at[0, "multiplicative_metrics_prod"] = (
-                pdm_result.at[0, "no_at_fault_collisions"] *
-                pdm_result.at[0, "drivable_area_compliance"] * 
-                pdm_result.at[0, "driving_direction_compliance"] *
-                pdm_result.at[0, "traffic_light_compliance"]
+                pdm_result.at[0, "no_at_fault_collisions"]
+                * pdm_result.at[0, "drivable_area_compliance"]
+                * pdm_result.at[0, "driving_direction_compliance"]
+                * pdm_result.at[0, "traffic_light_compliance"]
             )
-            
+
             # 2. Recalculate weighted_metrics array
             weighted_metrics = pdm_result.at[0, "weighted_metrics"].copy()
-            
+
             weighted_metrics[WeightedMetricIndex.PROGRESS] = pdm_result.at[0, "ego_progress"]
             weighted_metrics[WeightedMetricIndex.TTC] = pdm_result.at[0, "time_to_collision_within_bound"]
             weighted_metrics[WeightedMetricIndex.LANE_KEEPING] = pdm_result.at[0, "lane_keeping"]
             weighted_metrics[WeightedMetricIndex.HISTORY_COMFORT] = pdm_result.at[0, "history_comfort"]
             pdm_result.at[0, "weighted_metrics"] = weighted_metrics
-            
+
     return pdm_result, simulated_states[pred_idx]
