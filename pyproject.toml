@@ -15,7 +15,7 @@ classifiers = [
 name = "nav123d"
 version = "0.0.1"
 authors = [{ name = "Daniel Dauner", email = "daniel.dauner@gmail.com" }]
-description = "123D: A Unified Library for Multi-Modal Autonomous Driving Data."
+description = "NAV123D: Cross-Dataset Non-Reactive Autonomous Vehicle Simulation and Benchmarking"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
