@@ -20,11 +20,12 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
 dependencies = [
-    "py123d==0.3.0"
+    "py123d==0.4.0"
 ]
 
 [project.scripts]
 py123d-training = "nav123d.script.run_training:main"
+py123d-evaluation = "nav123d.script.run_evaluation:main"
 
 [project.optional-dependencies]
 dev = [
