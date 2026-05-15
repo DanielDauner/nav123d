@@ -6,7 +6,7 @@ from typing import Optional, cast
 
 import numpy as np
 import numpy.typing as npt
-from py123d.common.utils.mixin import ArrayMixin
+from py123d.geometry import PolylineSE2
 
 PROXIMITY_ABS_TOL = 1e-10
 
@@ -96,15 +96,29 @@ class TrajectorySampling:
         )
 
 
-class TrajectorySE2(ArrayMixin):
+class TrajectorySE2:
     """Trajectory dataclass in NAVSIM."""
 
-    pose_se2_array: npt.NDArray[np.float32]  # local coordinates
+    pose_se2_array: npt.NDArray[np.float64]  # local coordinates
+    timestamps: npt.NDArray[np.int64]  # [s] time of each pose in trajectory, relative to trajectory start time
     trajectory_sampling: TrajectorySampling = TrajectorySampling(time_horizon=4, interval_length=0.5)
 
-    def __post_init__(self):
-        assert self.pose_se2_array.ndim == 2, "Trajectory poses should have two dimensions for samples and poses."
-        assert self.poses.shape[0] == self.trajectory_sampling.num_poses, (
-            "Trajectory poses and sampling have unequal number of poses."
-        )
-        assert self.poses.shape[1] == 3, "Trajectory requires (x, y, heading) at last dim."
+    # @classmethod
+    # def from_arrays(
+    #     cls,
+    #     pose_se2_array: npt.NDArray[np.float64],
+    #     timestamps: npt.NDArray[np.int64],
+    #     copy: bool = True,
+    # ) -> TrajectorySE2:
+    #     pass
+
+    @property
+    def polyline_se2(self) -> PolylineSE2:
+        return PolylineSE2.from_array(self.pose_se2_array)
+
+    # def __post_init__(self):
+    #     assert self.pose_se2_array.ndim == 2, "Trajectory poses should have two dimensions for samples and poses."
+    #     assert self.pose_se2_array.shape[0] == self.trajectory_sampling.num_poses, (
+    #         "Trajectory poses and sampling have unequal number of poses."
+    #     )
+    #     assert self.pose_se2_array.shape[1] == 3, "Trajectory requires (x, y, heading) at last dim."

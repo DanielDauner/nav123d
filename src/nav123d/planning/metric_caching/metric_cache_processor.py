@@ -10,7 +10,7 @@ from nuplan.common.actor_state.tracked_objects import TrackedObjects
 from nuplan.common.actor_state.tracked_objects_types import AGENT_TYPES
 from nuplan.common.geometry.convert import absolute_to_relative_poses
 from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject, RoadBlockGraphEdgeMapObject
-from nuplan.common.maps.maps_datatypes import SemanticMapLayer, TrafficLightStatusData
+from nuplan.common.maps.maps_datatypes import TrafficLightStatusData
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.simulation.history.simulation_history_buffer import SimulationHistoryBuffer
 from nuplan.planning.simulation.observation.observation_type import DetectionsTracks
@@ -23,7 +23,7 @@ from nav123d.common.dataclasses import Trajectory
 from nav123d.common.enums import SceneFrameType
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.pdm.observation.pdm_observation import PDMObservation
-from nav123d.pdm.pdm_closed_planner import PDMClosedPlanner
+from nav123d.pdm.pdm_closed_planner import PDMClosedPlanner, _build_route_dicts
 from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 from nav123d.planning.metric_caching.metric_cache import MapParameters, MetricCache
 from nav123d.planning.metric_caching.metric_caching_utils import StateInterpolator
@@ -250,21 +250,7 @@ class MetricCacheProcessor:
     def _load_route_dicts(
         self, scenario: NavSimScenario, route_roadblock_ids: List[str]
     ) -> Tuple[Dict[str, RoadBlockGraphEdgeMapObject], Dict[str, LaneGraphEdgeMapObject]]:
-        route_roadblock_ids = list(dict.fromkeys(route_roadblock_ids))
-
-        route_roadblock_dict = {}
-        route_lane_dict = {}
-
-        for id_ in route_roadblock_ids:
-            block = scenario.map_api.get_map_object(id_, SemanticMapLayer.ROADBLOCK)
-            block = block or scenario.map_api.get_map_object(id_, SemanticMapLayer.ROADBLOCK_CONNECTOR)
-
-            route_roadblock_dict[block.id] = block
-
-            for lane in block.interior_edges:
-                route_lane_dict[lane.id] = lane
-
-        return route_roadblock_dict, route_lane_dict
+        return _build_route_dicts(scenario.map_api, route_roadblock_ids)
 
     def _build_file_path(self, scenario: NavSimScenario) -> pathlib.Path:
         return (

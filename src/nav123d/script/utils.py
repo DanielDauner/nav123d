@@ -142,7 +142,7 @@ def run_runners(
     distributed_sync(Path(cfg.output_dir / Path("barrier")), cfg.distributed_timeout_seconds)
 
     # Only run on_run_simulation_end callbacks on master node
-    if int(os.environ.get("NODE_RANK", 0)) == 0:
+    if int(os.environ.get("NODE_RANK", "0")) == 0:
         common_builder.multi_main_callback.on_run_simulation_end()
 
     # Save profiler
