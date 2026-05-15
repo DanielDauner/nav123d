@@ -175,3 +175,24 @@ class PDMClosedPlanner(AbstractPlanner):
 
         # update proposals
         self._proposal_manager.update(current_lane.speed_limit_mps)
+
+
+def get_pdm_closed_planner() -> PDMClosedPlanner:
+    """
+    Factory method to create PDMClosedPlanner with default parameters.
+    """
+    pdm_closed = PDMClosedPlanner(
+        trajectory_sampling=TrajectorySampling(num_poses=80, interval_length=0.1),
+        proposal_sampling=TrajectorySampling(num_poses=40, interval_length=0.1),
+        idm_policies=BatchIDMPolicy(
+            speed_limit_fraction=[0.2, 0.4, 0.6, 0.8, 1.0],
+            fallback_target_velocity=15.0,
+            min_gap_to_lead_agent=1.0,
+            headway_time=1.5,
+            accel_max=1.5,
+            decel_max=3.0,
+        ),
+        lateral_offsets=[-1.0, 1.0],
+        map_radius=100,
+    )
+    return pdm_closed
