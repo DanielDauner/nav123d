@@ -1,4 +1,4 @@
-name: navsim
+name: nav123d
 channels:
   - conda-forge
 dependencies:
