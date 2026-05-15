@@ -1,20 +1,34 @@
-import copy
 from typing import Dict, Tuple
 
 import numpy as np
-import numpy.typing as npt
-from nuplan.common.actor_state.state_representation import Point2D
-from nuplan.common.actor_state.tracked_objects import TrackedObject
-from nuplan.common.actor_state.tracked_objects_types import AGENT_TYPES, TrackedObjectType
+from py123d.datatypes import BoxDetectionSE2, DefaultBoxDetectionLabel
+from py123d.geometry import BoundingBoxSE2Index, Point2D
+from py123d.geometry.utils.rotation_utils import normalize_angle
 
-from nav123d.pdm.utils.pdm_enums import BBCoordsIndex
-from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
-
-MAX_DYNAMIC_OBJECTS: Dict[TrackedObjectType, int] = {
-    TrackedObjectType.VEHICLE: 50,
-    TrackedObjectType.PEDESTRIAN: 25,
-    TrackedObjectType.BICYCLE: 10,
+MAX_DYNAMIC_OBJECTS_PER_LABEL: Dict[str, int] = {
+    "vehicle": 50,
+    "person": 25,
+    "two_wheeler": 10,
+    "else": 10,
 }
+
+DYNAMIC_OBJECT_LABELS = {
+    DefaultBoxDetectionLabel.VEHICLE,
+    DefaultBoxDetectionLabel.PERSON,
+    DefaultBoxDetectionLabel.TWO_WHEELER,
+    DefaultBoxDetectionLabel.ANIMAL,
+    DefaultBoxDetectionLabel.TRAIN,
+    DefaultBoxDetectionLabel.OTHER,
+}
+
+STATIC_OBJECT_LABELS = {
+    DefaultBoxDetectionLabel.TRAFFIC_SIGN,
+    DefaultBoxDetectionLabel.TRAFFIC_CONE,
+    DefaultBoxDetectionLabel.TRAFFIC_LIGHT,
+    DefaultBoxDetectionLabel.BARRIER,
+    DefaultBoxDetectionLabel.GENERIC_OBJECT,
+}
+
 MAX_STATIC_OBJECTS: int = 50
 
 
@@ -23,194 +37,178 @@ class PDMObjectManager:
 
     def __init__(
         self,
-    ):
+        max_dynamic_objects_per_label: Dict[str, int] = MAX_DYNAMIC_OBJECTS_PER_LABEL,
+        max_static_objects: int = MAX_STATIC_OBJECTS,
+    ) -> None:
         """Constructor of PDMObjectManager."""
 
         # all objects
-        self._unique_objects: Dict[str, TrackedObject] = {}
+        self._unique_objects: Dict[str, BoxDetectionSE2] = {}
 
         # dynamic objects
-        self._dynamic_object_tokens = {key: [] for key in MAX_DYNAMIC_OBJECTS.keys()}
-        self._dynamic_object_coords = {key: [] for key in MAX_DYNAMIC_OBJECTS.keys()}
-        self._dynamic_object_dxy = {key: [] for key in MAX_DYNAMIC_OBJECTS.keys()}
+        self._max_dynamic_objects_per_label = max_dynamic_objects_per_label
+        self._dynamic_object_tokens = {key: [] for key in max_dynamic_objects_per_label.keys()}
+        self._dynamic_object_bbse2 = {key: [] for key in max_dynamic_objects_per_label.keys()}
+        self._dynamic_object_dxy = {key: [] for key in max_dynamic_objects_per_label.keys()}
 
         # static objects
+        self._max_static_objects = max_static_objects
         self._static_object_tokens = []
-        self._static_object_coords = []
+        self._static_object_bbse2 = []
 
     @property
-    def unique_objects(self) -> Dict[str, TrackedObject]:
+    def unique_objects(self) -> Dict[str, BoxDetectionSE2]:
         """
         Getter of unique_objects
         :return: Dictionary of uniquely tracked objects
         """
         return self._unique_objects
 
-    def add_object(self, object: TrackedObject) -> None:
+    def add_object(self, box_detection_se2: BoxDetectionSE2) -> None:
         """
-        Add object to manager and sort category (dynamic/static)
-        :param object: any tracked object
+        Add box_detection_se2 to manager and sort category (dynamic/static)
+        :param box_detection_se2: any tracked object
         """
-        self._unique_objects[object.track_token] = object
 
-        coords_list = [[corner.x, corner.y] for corner in copy.deepcopy(object.box.all_corners())]
-        coords_list.append([object.center.x, object.center.y])
+        bbse2_array = box_detection_se2.bounding_box_se2.array
+        default_label = box_detection_se2.attributes.default_label
+        track_token = box_detection_se2.attributes.track_token
 
-        coords: np.ndarray = np.array(coords_list, dtype=np.float64)
+        self._unique_objects[track_token] = box_detection_se2
 
-        if object.tracked_object_type in AGENT_TYPES:
-            velocity = object.velocity
-            velocity_angle = np.arctan2(velocity.y, velocity.x)
-            agent_drives_forward = np.abs(normalize_angle(object.center.heading - velocity_angle)) < np.pi / 2
+        if default_label in DYNAMIC_OBJECT_LABELS:
+            assert box_detection_se2.velocity_2d is not None, (
+                f"Dynamic object {track_token} has no velocity information!"
+            )
+            velocity_2d = box_detection_se2.velocity_2d
+            velocity_angle = np.arctan2(velocity_2d.y, velocity_2d.x)
+            agent_drives_forward = (
+                np.abs(normalize_angle(box_detection_se2.center_se2.yaw - velocity_angle)) < np.pi / 2
+            )
 
             track_heading = (
-                object.center.heading if agent_drives_forward else normalize_angle(object.center.heading + np.pi)
+                box_detection_se2.center_se2.yaw
+                if agent_drives_forward
+                else normalize_angle(box_detection_se2.center_se2.yaw + np.pi)
             )
 
             dxy = np.array(
                 [
-                    np.cos(track_heading) * velocity.magnitude(),
-                    np.sin(track_heading) * velocity.magnitude(),
+                    np.cos(track_heading) * velocity_2d.magnitude,
+                    np.sin(track_heading) * velocity_2d.magnitude,
                 ],
                 dtype=np.float64,
             ).T  # x,y velocity [m/s]
 
-            self._add_dynamic_object(object.tracked_object_type, object.track_token, coords, dxy)
+            label = default_label.serialize()
+            label = label if label in self._dynamic_object_tokens.keys() else "else"
+
+            self._dynamic_object_tokens[label].append(track_token)
+            self._dynamic_object_bbse2[label].append(bbse2_array)
+            self._dynamic_object_dxy[label].append(dxy)
 
         else:
-            self._add_static_object(object.tracked_object_type, object.track_token, coords)
+            self._static_object_tokens.append(track_token)
+            self._static_object_bbse2.append(bbse2_array)
 
     def get_nearest_objects(self, position: Point2D) -> Tuple:
         """
         Retrieve nearest k objects depending on category.
         :param position: global map position
-        :return: tuple containing tokens, coords, and dynamic information of objects
+        :return: tuple containing tokens, bbse2, and dynamic information of objects
         """
-        dynamic_object_tokens, dynamic_object_coords_list, dynamic_object_dxy_list = (
+        dynamic_object_tokens, dynamic_object_bbse2_list, dynamic_object_dxy_list = (
             [],
             [],
             [],
         )
 
-        for dynamic_object_type in MAX_DYNAMIC_OBJECTS.keys():
+        for dynamic_object_type in self._dynamic_object_tokens.keys():
             (
                 dynamic_object_tokens_,
-                dynamic_object_coords_,
+                dynamic_object_bbse2_,
                 dynamic_object_dxy_,
             ) = self._get_nearest_dynamic_objects(position, dynamic_object_type)
 
-            if dynamic_object_coords_.ndim != 3:
+            if dynamic_object_bbse2_.ndim != 3:
                 continue
 
             dynamic_object_tokens.extend(dynamic_object_tokens_)
-            dynamic_object_coords_list.append(dynamic_object_coords_)
+            dynamic_object_bbse2_list.append(dynamic_object_bbse2_)
             dynamic_object_dxy_list.append(dynamic_object_dxy_)
 
-        if len(dynamic_object_coords_list) > 0:
-            dynamic_object_coords = np.concatenate(dynamic_object_coords_list, axis=0, dtype=np.float64)
+        if len(dynamic_object_bbse2_list) > 0:
+            dynamic_object_bbse2 = np.concatenate(dynamic_object_bbse2_list, axis=0, dtype=np.float64)
             dynamic_object_dxy = np.concatenate(dynamic_object_dxy_list, axis=0, dtype=np.float64)
         else:
-            dynamic_object_coords = np.array([], dtype=np.float64)
+            dynamic_object_bbse2 = np.array([], dtype=np.float64)
             dynamic_object_dxy = np.array([], dtype=np.float64)
 
-        static_object_tokens, static_object_coords = self._get_nearest_static_objects(position, None)
+        static_object_tokens, static_object_bbse2_array = self._get_nearest_static_objects(position)
 
         return (
             static_object_tokens,
-            static_object_coords,
+            static_object_bbse2_array,
             dynamic_object_tokens,
-            dynamic_object_coords,
+            dynamic_object_bbse2,
             dynamic_object_dxy,
         )
 
-    def _add_dynamic_object(
-        self,
-        type: TrackedObjectType,
-        token: str,
-        coords: npt.NDArray[np.float64],
-        dxy: npt.NDArray[np.float64],
-    ) -> None:
-        """
-        Adds dynamic obstacle to the manager.
-        :param type: Object type (vehicle, pedestrian, etc.)
-        :param token: Temporally consistent object identifier
-        :param coords: Bounding-box coordinates
-        :param dxy: velocity (x,y) [m/s]
-        """
-        self._dynamic_object_tokens[type].append(token)
-        self._dynamic_object_coords[type].append(coords)
-        self._dynamic_object_dxy[type].append(dxy)
-
-    def _add_static_object(
-        self,
-        type: TrackedObjectType,
-        token: str,
-        coords: npt.NDArray[np.float64],
-    ) -> None:
-        """
-        Adds static obstacle to manager.
-        :param type: Object type (e.g. generic, traffic cone, etc.), currently ignored
-        :param token: Temporally consistent object identifier
-        :param coords: Bounding-box coordinates
-        """
-        self._static_object_tokens.append(token)
-        self._static_object_coords.append(coords)
-
-    def _get_nearest_dynamic_objects(self, position: Point2D, type: TrackedObjectType) -> Tuple:
+    def _get_nearest_dynamic_objects(self, position: Point2D, label: str) -> Tuple:
         """
         Retrieves nearest k dynamic objects depending on type
         :param position: Ego-vehicle position
-        :param type: Object type to sort
-        :return: Tuple of tokens, coords, and velocity of nearest objects.
+        :param label: Object label to sort
+        :return: Tuple of tokens, bbse2, and velocity of nearest objects.
         """
         position_coords = position.array[None, ...]  # shape: (1,2)
 
-        object_tokens = self._dynamic_object_tokens[type]
-        object_coords = np.array(self._dynamic_object_coords[type], dtype=np.float64)
-        object_dxy = np.array(self._dynamic_object_dxy[type], dtype=np.float64)
+        object_tokens = self._dynamic_object_tokens[label]
+        object_bbse2 = np.array(self._dynamic_object_bbse2[label], dtype=np.float64)
+        object_dxy = np.array(self._dynamic_object_dxy[label], dtype=np.float64)
 
         if len(object_tokens) > 0:
             # add axis if single object found
-            if object_coords.ndim == 1:
-                object_coords = object_coords[None, ...]
+            if object_bbse2.ndim == 1:
+                object_bbse2 = object_bbse2[None, ...]
                 object_dxy = object_dxy[None, ...]
 
-            position_to_center_dist = ((object_coords[..., BBCoordsIndex.CENTER, :] - position_coords) ** 2.0).sum(
+            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY, :] - position_coords) ** 2.0).sum(
                 axis=-1
             ) ** 0.5
 
             object_argsort = np.argsort(position_to_center_dist)
 
-            object_tokens = [object_tokens[i] for i in object_argsort][: MAX_DYNAMIC_OBJECTS[type]]
-            object_coords = object_coords[object_argsort][: MAX_DYNAMIC_OBJECTS[type]]
-            object_dxy = object_dxy[object_argsort][: MAX_DYNAMIC_OBJECTS[type]]
+            object_tokens = [object_tokens[i] for i in object_argsort][: self._max_dynamic_objects_per_label[label]]
+            object_bbse2 = object_bbse2[object_argsort][: self._max_dynamic_objects_per_label[label]]
+            object_dxy = object_dxy[object_argsort][: self._max_dynamic_objects_per_label[label]]
 
-        return (object_tokens, object_coords, object_dxy)
+        return (object_tokens, object_bbse2, object_dxy)
 
-    def _get_nearest_static_objects(self, position: Point2D, type: TrackedObjectType) -> Tuple:
+    def _get_nearest_static_objects(self, position: Point2D) -> Tuple:
         """
         Retrieves nearest k static obstacles around ego's position.
         :param position: ego's position
-        :param type: type of static obstacle (currently ignored)
+        :param label: label of static obstacle (currently ignored)
         :return: tuple of tokens and coords of nearest objects
         """
         position_coords = position.array[None, ...]  # shape: (1,2)
 
         object_tokens = self._static_object_tokens
-        object_coords = np.array(self._static_object_coords, dtype=np.float64)
+        object_bbse2 = np.array(self._static_object_bbse2, dtype=np.float64)
 
         if len(object_tokens) > 0:
             # add axis if single object found
-            if object_coords.ndim == 1:
-                object_coords = object_coords[None, ...]
+            if object_bbse2.ndim == 1:
+                object_bbse2 = object_bbse2[None, ...]
 
-            position_to_center_dist = ((object_coords[..., BBCoordsIndex.CENTER, :] - position_coords) ** 2.0).sum(
+            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY, :] - position_coords) ** 2.0).sum(
                 axis=-1
             ) ** 0.5
 
             object_argsort = np.argsort(position_to_center_dist)
 
-            object_tokens = [object_tokens[i] for i in object_argsort][:MAX_STATIC_OBJECTS]
-            object_coords = object_coords[object_argsort][:MAX_STATIC_OBJECTS]
+            object_tokens = [object_tokens[i] for i in object_argsort][: self._max_static_objects]
+            object_bbse2 = object_bbse2[object_argsort][: self._max_static_objects]
 
-        return (object_tokens, object_coords)
+        return (object_tokens, object_bbse2)

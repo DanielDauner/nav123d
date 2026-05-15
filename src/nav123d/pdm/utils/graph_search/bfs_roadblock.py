@@ -1,58 +1,59 @@
 from collections import deque
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Deque, Dict, List, Optional, Tuple, Union, cast
 
-from nuplan.common.maps.abstract_map import AbstractMap
-from nuplan.common.maps.abstract_map_objects import RoadBlockGraphEdgeMapObject
+from py123d.api import MapAPI
+from py123d.datatypes import LaneGroup, MapLayer
 
 
-class BreadthFirstSearchRoadBlock:
+class BreadthFirstSearchLaneGroup:
     """
-    A class that performs iterative breadth first search. The class operates on the roadblock graph.
+    A class that performs iterative breadth first search. The class operates on the lane_group graph.
     """
 
     def __init__(
         self,
-        start_roadblock_id: int,
-        map_api: Optional[AbstractMap],
-        forward_search: str = True,
+        start_lane_group_id: int,
+        map_api: MapAPI,
+        forward_search: bool = True,
     ):
         """
-        Constructor of BreadthFirstSearchRoadBlock class
-        :param start_roadblock_id: roadblock id where graph starts
+        Constructor of BreadthFirstSearchLaneGroup class
+        :param start_lane_group_id: lane_group id where graph starts
         :param map_api: map class in nuPlan
         :param forward_search: whether to search in driving direction, defaults to True
         """
-        self._map_api: Optional[AbstractMap] = map_api
-        self._queue = deque([self.id_to_roadblock(start_roadblock_id), None])
-        self._parent: Dict[str, Optional[RoadBlockGraphEdgeMapObject]] = dict()
-        self._forward_search = forward_search
+        self._map_api: MapAPI = map_api
 
-        #  lazy loaded
-        self._target_roadblock_ids: List[str] = None
+        _start_lane_group = self._map_api.get_map_object_in_layer(start_lane_group_id, MapLayer.LANE_GROUP)
+        assert _start_lane_group is not None, f"LaneGroup with id {start_lane_group_id} not found in map."
+        self._queue: Deque[Optional[LaneGroup]] = deque([cast(LaneGroup, _start_lane_group), None])
+        self._parent: Dict[str, Optional[LaneGroup]] = dict()
+        self._forward_search: bool = forward_search
 
     def search(
-        self, target_roadblock_id: Union[str, List[str]], max_depth: int
-    ) -> Tuple[List[RoadBlockGraphEdgeMapObject], bool]:
+        self, target_lane_group_id: Union[int, List[int]], max_depth: int
+    ) -> Tuple[List[LaneGroup], List[int], bool]:
         """
-        Apply BFS to find route to target roadblock.
-        :param target_roadblock_id: id of target roadblock
+        Apply BFS to find route to target lane_group.
+        :param target_lane_group_id: id of target lane_group
         :param max_depth: maximum search depth
         :return: tuple of route and whether a path was found
         """
 
-        if isinstance(target_roadblock_id, str):
-            target_roadblock_id = [target_roadblock_id]
-        self._target_roadblock_ids = target_roadblock_id
+        if isinstance(target_lane_group_id, int):
+            target_lane_group_ids = [target_lane_group_id]
+        else:
+            target_lane_group_ids = list(set(target_lane_group_id))
 
-        start_edge = self._queue[0]
+        start_edge: LaneGroup = self._queue[0]  # type: ignore
 
         # Initial search states
         path_found: bool = False
-        end_edge: RoadBlockGraphEdgeMapObject = start_edge
+        end_edge: LaneGroup = start_edge  # type: ignore
         end_depth: int = 1
         depth: int = 1
 
-        self._parent[start_edge.id + f"_{depth}"] = None
+        self._parent[str(start_edge.object_id) + f"_{depth}"] = None
 
         while self._queue:
             current_edge = self._queue.popleft()
@@ -70,77 +71,72 @@ class BreadthFirstSearchRoadBlock:
                 continue
 
             # Goal condition
-            if self._check_goal_condition(current_edge, depth, max_depth):
+            if self._check_goal_condition(current_edge, target_lane_group_ids, depth, max_depth):
                 end_edge = current_edge
                 end_depth = depth
                 path_found = True
                 break
 
-            neighbors = current_edge.outgoing_edges if self._forward_search else current_edge.incoming_edges
+            neighbors = current_edge.successors if self._forward_search else current_edge.predecessors
 
             # Populate queue
             for next_edge in neighbors:
-                # if next_edge.id in self._candidate_lane_edge_ids_old:
+                # if next_edge.object_id in self._candidate_lane_edge_ids_old:
                 self._queue.append(next_edge)
-                self._parent[next_edge.id + f"_{depth + 1}"] = current_edge
+                self._parent[str(next_edge.object_id) + f"_{depth + 1}"] = current_edge
                 end_edge = next_edge
                 end_depth = depth + 1
 
-        return self._construct_path(end_edge, end_depth), path_found
-
-    def id_to_roadblock(self, id: str) -> RoadBlockGraphEdgeMapObject:
-        """
-        Retrieves roadblock from map-api based on id
-        :param id: id of roadblock
-        :return: roadblock class
-        """
-        block = self._map_api._get_roadblock(id)
-        block = block or self._map_api._get_roadblock_connector(id)
-        return block
+        path, path_id = self._construct_path(end_edge, end_depth)
+        return path, path_id, path_found
 
     @staticmethod
     def _check_end_condition(depth: int, max_depth: int) -> bool:
         """
         Check if the search should end regardless if the goal condition is met.
         :param depth: The current depth to check.
-        :param target_depth: The target depth to check against.
+        :param max_depth: The maximum depth to check against.
         :return: whether depth exceeds the target depth.
         """
         return depth > max_depth
 
     def _check_goal_condition(
         self,
-        current_edge: RoadBlockGraphEdgeMapObject,
+        current_edge: LaneGroup,
+        target_lane_group_ids: List[int],
         depth: int,
         max_depth: int,
     ) -> bool:
         """
-        Check if the current edge is at the target roadblock at the given depth.
+        Check if the current edge is at the target lane_group at the given depth.
         :param current_edge: edge to check.
+        :param target_lane_group_ids: list of target lane_group ids.
         :param depth: current depth to check.
         :param max_depth: maximum depth the edge should be at.
-        :return: True if the lane edge is contain the in the target roadblock. False, otherwise.
+        :return: True if the lane edge is contain the in the target lane_group. False, otherwise.
         """
-        return current_edge.id in self._target_roadblock_ids and depth <= max_depth
+        return int(current_edge.object_id) in target_lane_group_ids and depth <= max_depth
 
-    def _construct_path(self, end_edge: RoadBlockGraphEdgeMapObject, depth: int) -> List[RoadBlockGraphEdgeMapObject]:
+    def _construct_path(self, end_edge: LaneGroup, depth: int) -> Tuple[List[LaneGroup], List[int]]:
         """
         Constructs a path when goal was found.
         :param end_edge: The end edge to start back propagating back to the start edge.
         :param depth: The depth of the target edge.
-        :return: The constructed path as a list of RoadBlockGraphEdgeMapObject
+        :return: The constructed path as a list of LaneGroup
         """
-        path = [end_edge]
-        path_id = [end_edge.id]
 
-        while self._parent[end_edge.id + f"_{depth}"] is not None:
-            path.append(self._parent[end_edge.id + f"_{depth}"])
-            path_id.append(path[-1].id)
-            end_edge = self._parent[end_edge.id + f"_{depth}"]
+        _end_edge = end_edge
+        path = [_end_edge]
+        path_id = [_end_edge.object_id]
+
+        while self._parent[str(_end_edge.object_id) + f"_{depth}"] is not None:  # type: ignore
+            path.append(self._parent[str(_end_edge.object_id) + f"_{depth}"])  # type: ignore
+            path_id.append(path[-1].object_id)
+            _end_edge = self._parent[str(_end_edge.object_id) + f"_{depth}"]  # type: ignore
             depth -= 1
 
         if self._forward_search:
             path.reverse()
             path_id.reverse()
 
-        return (path, path_id)
+        return (path, path_id)  # type: ignore

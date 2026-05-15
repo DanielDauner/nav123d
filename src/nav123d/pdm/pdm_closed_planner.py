@@ -1,36 +1,41 @@
 import gc
 import logging
-from typing import Dict, List, Optional, Type
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
-import numpy as np
-import pandas as pd
 from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.maps.abstract_map import AbstractMap
-from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject, RoadBlockGraphEdgeMapObject
-from nuplan.planning.simulation.observation.observation_type import DetectionsTracks, Observation
-from nuplan.planning.simulation.planner.abstract_planner import AbstractPlanner, PlannerInitialization, PlannerInput
 from nuplan.planning.simulation.trajectory.abstract_trajectory import AbstractTrajectory
+from py123d.api import MapAPI
+from py123d.datatypes import BoxDetectionsSE2, EgoStateSE2, Lane, LaneGroup, TrafficLightDetections
+from py123d.geometry import OccupancyMap2D
 
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.pdm.observation.pdm_observation import PDMObservation
-from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
 from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 from nav123d.pdm.proposal.pdm_generator import PDMGenerator
 from nav123d.pdm.proposal.pdm_proposal import PDMProposalManager
 from nav123d.pdm.scoring.pdm_scorer import PDMScorer
 from nav123d.pdm.simulation.pdm_simulator import PDMSimulator
 from nav123d.pdm.utils.pdm_closed_utils import (
-    _build_route_dicts,
-    _correct_route_roadblocks,
     _get_proposal_paths,
     _get_starting_lane,
+    build_drivable_area_occupancy_map,
+    build_route_dicts,
+    correct_route_lane_groups,
 )
 from nav123d.pdm.utils.pdm_path import PDMPath
 
 logger = logging.getLogger(__name__)
 
 
-class PDMClosedPlanner(AbstractPlanner):
+@dataclass
+class PDMClosedInput:
+    ego_state_se2: EgoStateSE2
+    box_detections_se2: BoxDetectionsSE2
+    traffic_light_detections: TrafficLightDetections
+
+
+class PDMClosedPlanner:
     """PDM-Closed planner."""
 
     # Inherited property, see superclass.
@@ -74,80 +79,90 @@ class PDMClosedPlanner(AbstractPlanner):
         self._iteration: int = 0
 
         # lazy loaded
-        self._map_api: Optional[AbstractMap] = None
-        self._route_roadblock_dict: Optional[Dict[str, RoadBlockGraphEdgeMapObject]] = None
-        self._route_lane_dict: Optional[Dict[str, LaneGraphEdgeMapObject]] = None
+        self._map_api: Optional[MapAPI] = None
+        self._route_lane_group_dict: Optional[Dict[int, LaneGroup]] = None
+        self._route_lane_dict: Optional[Dict[int, Lane]] = None
         self._centerline: Optional[PDMPath] = None
-        self._drivable_area_map: Optional[PDMDrivableMap] = None
+        self._drivable_area_map: Optional[OccupancyMap2D] = None
         self._proposal_manager: Optional[PDMProposalManager] = None
 
-    def initialize(self, initialization: PlannerInitialization) -> None:
+    def initialize(self, map_api: MapAPI, route_lane_group_ids: List[int]) -> None:
         """Inherited, see superclass."""
         self._iteration = 0
-        self._map_api = initialization.map_api
-        self._load_route_dicts(initialization.route_roadblock_ids)
+        self._map_api = map_api
+        self._route_lane_group_dict, self._route_lane_dict = build_route_dicts(self._map_api, route_lane_group_ids)
         gc.collect()
 
     def name(self) -> str:
         """Inherited, see superclass."""
         return self.__class__.__name__
 
-    def observation_type(self) -> Type[Observation]:
-        """Inherited, see superclass."""
-        return DetectionsTracks  # type: ignore
-
-    def compute_planner_trajectory(self, current_input: PlannerInput) -> AbstractTrajectory:
+    def compute_planner_trajectory(self, current_input: PDMClosedInput) -> AbstractTrajectory:
         """Inherited, see superclass."""
         gc.disable()
-        ego_state, observation = current_input.history.current_state
+
+        assert self._map_api is not None and self._route_lane_group_dict is not None, (
+            "Planner not initialized properly. Call initialize() before compute_planner_trajectory()."
+        )
+
+        ego_state_se2 = current_input.ego_state_se2
+        # box_detections_se2 = current_input.box_detections_se2
 
         # Apply route correction on first iteration (ego_state required)
         if self._iteration == 0:
-            self._route_roadblock_dict, self._route_lane_dict = _correct_route_roadblocks(
-                ego_state, self._map_api, self._route_roadblock_dict
+            assert self._map_api is not None and self._route_lane_group_dict is not None, (
+                "Planner not initialized properly."
+            )
+            self._route_lane_group_dict, self._route_lane_dict = correct_route_lane_groups(
+                ego_state_se2=ego_state_se2,
+                map_api=self._map_api,
+                route_lane_group_dict=self._route_lane_group_dict,
             )
 
+        assert self._route_lane_group_dict is not None and self._route_lane_dict is not None, (
+            "Route lane dicts not initialized."
+        )
+
         # Update/Create drivable area polygon map
-        self._drivable_area_map = PDMDrivableMap.from_simulation(self._map_api, ego_state, self._map_radius)
+        self._drivable_area_map = build_drivable_area_occupancy_map(
+            map_api=self._map_api,
+            ego_state_se2=ego_state_se2,
+            map_radius=self._map_radius,
+        )
 
         # 1. Environment forecast and observation update
         self._observation.update(
-            ego_state,
-            observation,
-            current_input.traffic_light_data,
-            self._route_lane_dict,
+            ego_state_se2=ego_state_se2,
+            box_detections_se2=current_input.box_detections_se2,
+            traffic_light_detections=current_input.traffic_light_detections,
+            route_lane_dict=self._route_lane_dict,
         )
 
-        # 2. Centerline extraction and proposal update
-        self._update_proposal_manager(ego_state)
+        # TODO: Refactor the rest and re-integrate the following steps:
+        # # 2. Centerline extraction and proposal update
+        # self._update_proposal_manager(ego_state)
 
-        # 3. Generate/Unroll proposals
-        proposals_array = self._generator.generate_proposals(ego_state, self._observation, self._proposal_manager)
+        # # 3. Generate/Unroll proposals
+        # proposals_array = self._generator.generate_proposals(ego_state, self._observation, self._proposal_manager)
 
-        # 4. Simulate proposals
-        simulated_proposals_array = self._simulator.simulate_proposals(proposals_array, ego_state)
+        # # 4. Simulate proposals
+        # simulated_proposals_array = self._simulator.simulate_proposals(proposals_array, ego_state)
 
-        # 5. Score proposals
-        pdm_results = self._scorer.score_proposals(
-            simulated_proposals_array,
-            self._observation,
-            self._centerline,
-            list(self._route_lane_dict.keys()),
-            self._drivable_area_map,
-        )
-        proposal_scores = np.array(pd.concat(pdm_results)["pdm_score"])
+        # # 5. Score proposals
+        # pdm_results = self._scorer.score_proposals(
+        #     simulated_proposals_array,
+        #     self._observation,
+        #     self._centerline,
+        #     list(self._route_lane_dict.keys()),
+        #     self._drivable_area_map,
+        # )
+        # proposal_scores = np.array(pd.concat(pdm_results)["pdm_score"])
 
-        trajectory = self._generator.generate_trajectory(np.argmax(proposal_scores))
+        # trajectory = self._generator.generate_trajectory(np.argmax(proposal_scores))
 
-        self._iteration += 1
-        return trajectory
-
-    def _load_route_dicts(self, route_roadblock_ids: List[str]) -> None:
-        """
-        Loads roadblock and lane dictionaries of the target route into self.
-        :param route_roadblock_ids: ID's of on-route roadblocks
-        """
-        self._route_roadblock_dict, self._route_lane_dict = _build_route_dicts(self._map_api, route_roadblock_ids)  # noqa: F821
+        # self._iteration += 1
+        # return trajectory
+        pass
 
     def _update_proposal_manager(self, ego_state: EgoState) -> None:
         """
@@ -162,7 +177,7 @@ class PDMClosedPlanner(AbstractPlanner):
         if create_new_proposals:
             proposal_paths: List[PDMPath] = _get_proposal_paths(
                 current_lane,
-                self._route_roadblock_dict,
+                self._route_lane_group_dict,
                 self._route_lane_dict,
                 self._lateral_offsets,
             )

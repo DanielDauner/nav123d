@@ -2,24 +2,26 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
+import shapely.geometry as geom
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import StateSE2
-from nuplan.common.maps.abstract_map import AbstractMap
 from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject, RoadBlockGraphEdgeMapObject
-from nuplan.common.maps.maps_datatypes import SemanticMapLayer
+from py123d.api import MapAPI
+from py123d.datatypes import BaseMapSurfaceObject, EgoStateSE2, Lane, LaneGroup, MapLayer
+from py123d.geometry import OccupancyMap2D
 from shapely.geometry import Point
 
 from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
 from nav123d.pdm.utils.graph_search.dijkstra import Dijkstra
 from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle, parallel_discrete_path
 from nav123d.pdm.utils.pdm_path import PDMPath
-from nav123d.pdm.utils.route_utils import route_roadblock_correction
+from nav123d.pdm.utils.route_utils import route_lane_group_correction
 
 
-def _build_route_dicts(
-    map_api: AbstractMap,
-    route_roadblock_ids: List[str],
-) -> Tuple[Dict[str, RoadBlockGraphEdgeMapObject], Dict[str, LaneGraphEdgeMapObject]]:
+def build_route_dicts(
+    map_api: MapAPI,
+    route_roadblock_ids: List[int],
+) -> Tuple[Dict[int, LaneGroup], Dict[int, Lane]]:
     """
     Builds roadblock and lane dictionaries of the target route from the map-api.
     :param map_api: map interface
@@ -28,26 +30,26 @@ def _build_route_dicts(
     """
     route_roadblock_ids = list(dict.fromkeys(route_roadblock_ids))
 
-    route_roadblock_dict: Dict[str, RoadBlockGraphEdgeMapObject] = {}
-    route_lane_dict: Dict[str, LaneGraphEdgeMapObject] = {}
+    route_lane_group_dict: Dict[int, LaneGroup] = {}
+    route_lane_dict: Dict[int, Lane] = {}
 
     for id_ in route_roadblock_ids:
-        block = map_api.get_map_object(id_, SemanticMapLayer.ROADBLOCK)
-        block = block or map_api.get_map_object(id_, SemanticMapLayer.ROADBLOCK_CONNECTOR)
+        _lane_group = map_api.get_map_object_in_layer(id_, MapLayer.LANE_GROUP)
 
-        route_roadblock_dict[block.id] = block
+        if isinstance(_lane_group, LaneGroup):
+            route_lane_group_dict[int(_lane_group.object_id)] = _lane_group
 
-        for lane in block.interior_edges:
-            route_lane_dict[lane.id] = lane
+            for lane in _lane_group.lanes:
+                route_lane_dict[int(lane.object_id)] = lane
 
-    return route_roadblock_dict, route_lane_dict
+    return route_lane_group_dict, route_lane_dict
 
 
-def _correct_route_roadblocks(
-    ego_state: EgoState,
-    map_api: AbstractMap,
-    route_roadblock_dict: Dict[str, RoadBlockGraphEdgeMapObject],
-) -> Tuple[Dict[str, RoadBlockGraphEdgeMapObject], Dict[str, LaneGraphEdgeMapObject]]:
+def correct_route_lane_groups(
+    ego_state_se2: EgoStateSE2,
+    map_api: MapAPI,
+    route_lane_group_dict: Dict[int, LaneGroup],
+) -> Tuple[Dict[int, LaneGroup], Dict[int, Lane]]:
     """
     Corrects the roadblock route and rebuilds lane-graph dictionaries.
     :param ego_state: state of the ego vehicle
@@ -55,8 +57,37 @@ def _correct_route_roadblocks(
     :param route_roadblock_dict: current roadblock dict (used for correction context)
     :return: tuple of (corrected route_roadblock_dict, corrected route_lane_dict)
     """
-    corrected_ids = route_roadblock_correction(ego_state.rear_axle, map_api, route_roadblock_dict)
-    return _build_route_dicts(map_api, corrected_ids)
+    corrected_lane_groups, corrected_ids = route_lane_group_correction(
+        ego_pose_se2=ego_state_se2.rear_axle_se2,
+        map_api=map_api,
+        route_lane_group_dict=route_lane_group_dict,
+    )
+    return build_route_dicts(map_api, corrected_ids)
+
+
+def build_drivable_area_occupancy_map(
+    map_api: MapAPI,
+    ego_state_se2: EgoStateSE2,
+    map_radius: float = 50.0,
+    layers: List[MapLayer] = [
+        MapLayer.LANE_GROUP,
+        MapLayer.INTERSECTION,
+        MapLayer.GENERIC_DRIVABLE,
+        MapLayer.CARPARK,
+    ],
+) -> OccupancyMap2D:
+    query_dict = map_api.get_map_objects_in_radius(
+        point=ego_state_se2.center_2d,
+        radius=map_radius,
+        layers=layers,  # type: ignore
+    )
+    drivable_objects_dict: Dict[str, geom.Polygon] = {}
+    for map_layer in query_dict.keys():
+        for map_object in query_dict[map_layer]:
+            assert isinstance(map_object, BaseMapSurfaceObject), f"Expected Surface, got {type(map_object)}"
+            drivable_objects_dict[f"{map_layer.serialize()}_{map_object.object_id}"] = map_object.shapely_polygon
+
+    return OccupancyMap2D.from_dict(drivable_objects_dict)  # type: ignore
 
 
 def _get_intersecting_lanes(
