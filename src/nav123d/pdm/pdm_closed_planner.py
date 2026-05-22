@@ -3,11 +3,11 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from nuplan.common.actor_state.ego_state import EgoState
+# from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.planning.simulation.trajectory.abstract_trajectory import AbstractTrajectory
 from py123d.api import MapAPI
 from py123d.datatypes import BoxDetectionsSE2, EgoStateSE2, Lane, LaneGroup, TrafficLightDetections
-from py123d.geometry import OccupancyMap2D
+from py123d.geometry import OccupancyMap2D, PolylineSE2
 
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.pdm.observation.pdm_observation import PDMObservation
@@ -23,7 +23,6 @@ from nav123d.pdm.utils.pdm_closed_utils import (
     build_route_dicts,
     correct_route_lane_groups,
 )
-from nav123d.pdm.utils.pdm_path import PDMPath
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +81,7 @@ class PDMClosedPlanner:
         self._map_api: Optional[MapAPI] = None
         self._route_lane_group_dict: Optional[Dict[int, LaneGroup]] = None
         self._route_lane_dict: Optional[Dict[int, Lane]] = None
-        self._centerline: Optional[PDMPath] = None
+        self._centerline: Optional[PolylineSE2] = None
         self._drivable_area_map: Optional[OccupancyMap2D] = None
         self._proposal_manager: Optional[PDMProposalManager] = None
 
@@ -139,11 +138,11 @@ class PDMClosedPlanner:
         )
 
         # TODO: Refactor the rest and re-integrate the following steps:
-        # # 2. Centerline extraction and proposal update
-        # self._update_proposal_manager(ego_state)
+        # 2. Centerline extraction and proposal update
+        self._update_proposal_manager(ego_state_se2)
 
-        # # 3. Generate/Unroll proposals
-        # proposals_array = self._generator.generate_proposals(ego_state, self._observation, self._proposal_manager)
+        # 3. Generate/Unroll proposals
+        # proposals_array = self._generator.generate_proposals(ego_state_se2, self._observation, self._proposal_manager)
 
         # # 4. Simulate proposals
         # simulated_proposals_array = self._simulator.simulate_proposals(proposals_array, ego_state)
@@ -164,18 +163,22 @@ class PDMClosedPlanner:
         # return trajectory
         pass
 
-    def _update_proposal_manager(self, ego_state: EgoState) -> None:
+    def _update_proposal_manager(self, ego_state_se2: EgoStateSE2) -> None:
         """
         Updates or initializes PDMProposalManager class
         :param ego_state: state of ego-vehicle
         """
-        current_lane = _get_starting_lane(ego_state, self._route_lane_dict, self._drivable_area_map)
+        assert self._route_lane_dict is not None and self._drivable_area_map is not None, (
+            "Planner not initialized properly."
+        )
+        current_lane = _get_starting_lane(ego_state_se2, self._route_lane_dict, self._drivable_area_map)
 
         # TODO: Find additional conditions to trigger re-planning
         create_new_proposals = self._iteration == 0
 
         if create_new_proposals:
-            proposal_paths: List[PDMPath] = _get_proposal_paths(
+            assert self._route_lane_group_dict is not None, "Planner not initialized properly."
+            proposal_paths: List[PolylineSE2] = _get_proposal_paths(
                 current_lane,
                 self._route_lane_group_dict,
                 self._route_lane_dict,

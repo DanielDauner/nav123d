@@ -216,7 +216,6 @@ class PDMObservation:
                     continue
             new_collided_track_ids.append(intersecting_obstacle)
 
-        # TODO: these are only the current tracks. Other update functions also add future tracks
         self._box_detections_se2 = box_detections_se2
         self._collided_track_ids += new_collided_track_ids
         self._unique_objects = object_manager.unique_objects

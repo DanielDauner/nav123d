@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import List
 
+from py123d.geometry import PolylineSE2
 from shapely.geometry import LineString
 
 from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
-from nav123d.pdm.utils.pdm_path import PDMPath
 
 
 @dataclass
@@ -14,7 +14,7 @@ class PDMProposal:
     proposal_idx: int
     lateral_idx: int
     longitudinal_idx: int
-    path: PDMPath
+    path: PolylineSE2
 
     @property
     def linestring(self) -> LineString:
@@ -32,7 +32,7 @@ class PDMProposalManager:
 
     def __init__(
         self,
-        lateral_proposals: List[PDMPath],
+        lateral_proposals: List[PolylineSE2],
         longitudinal_policies: BatchIDMPolicy,
     ):
         """
@@ -85,11 +85,11 @@ class PDMProposalManager:
 
     @property
     def num_longitudinal_proposals(self) -> int:
-        return self._longitudinal_policies._num_longitudinal_proposals
+        return self._num_longitudinal_proposals
 
     @property
     def max_target_velocity(self) -> float:
-        return self._longitudinal_policies.max_target_velocity
+        return float(self._longitudinal_policies.max_target_velocity)
 
     @property
     def longitudinal_policies(self) -> BatchIDMPolicy:

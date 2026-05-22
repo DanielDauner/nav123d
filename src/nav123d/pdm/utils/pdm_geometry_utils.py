@@ -18,22 +18,6 @@ def normalize_angle(angle):
     return np.arctan2(np.sin(angle), np.cos(angle))
 
 
-def parallel_discrete_path(discrete_path: List[StateSE2], offset=float) -> List[StateSE2]:
-    """
-    Creates a parallel discrete path for a given offset.
-    :param discrete_path: baseline path (x,y,θ)
-    :param offset: parall loffset
-    :return: parallel discrete path
-    """
-    parallel_discrete_path = []
-    for state in discrete_path:
-        theta = state.heading + np.pi / 2
-        x_new = state.x + np.cos(theta) * offset
-        y_new = state.y + np.sin(theta) * offset
-        parallel_discrete_path.append(StateSE2(x_new, y_new, state.heading))
-    return parallel_discrete_path
-
-
 def translate_lon_and_lat(
     centers: npt.NDArray[np.float64],
     headings: npt.NDArray[np.float64],

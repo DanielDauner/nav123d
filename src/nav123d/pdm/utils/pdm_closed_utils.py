@@ -3,18 +3,14 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import numpy.typing as npt
 import shapely.geometry as geom
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.state_representation import StateSE2
-from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject, RoadBlockGraphEdgeMapObject
 from py123d.api import MapAPI
 from py123d.datatypes import BaseMapSurfaceObject, EgoStateSE2, Lane, LaneGroup, MapLayer
-from py123d.geometry import OccupancyMap2D
+from py123d.geometry import OccupancyMap2D, PolylineSE2, PoseSE2Index, Vector2D
+from py123d.geometry.transform.transform_se2 import translate_se2_array_along_body_frame
 from shapely.geometry import Point
 
-from nav123d.pdm.observation.pdm_occupancy_map import PDMDrivableMap
 from nav123d.pdm.utils.graph_search.dijkstra import Dijkstra
-from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle, parallel_discrete_path
-from nav123d.pdm.utils.pdm_path import PDMPath
+from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
 from nav123d.pdm.utils.route_utils import route_lane_group_correction
 
 
@@ -70,6 +66,7 @@ def build_drivable_area_occupancy_map(
     ego_state_se2: EgoStateSE2,
     map_radius: float = 50.0,
     layers: List[MapLayer] = [
+        MapLayer.LANE,
         MapLayer.LANE_GROUP,
         MapLayer.INTERSECTION,
         MapLayer.GENERIC_DRIVABLE,
@@ -91,10 +88,8 @@ def build_drivable_area_occupancy_map(
 
 
 def _get_intersecting_lanes(
-    ego_state: EgoState,
-    route_lane_dict: Dict[str, LaneGraphEdgeMapObject],
-    drivable_area_map: PDMDrivableMap,
-) -> Tuple[List[LaneGraphEdgeMapObject], List[float]]:
+    ego_state_se2: EgoStateSE2, route_lane_dict: Dict[int, Lane], drivable_area_map: OccupancyMap2D
+) -> Tuple[List[Lane], List[float]]:
     """
     Returns on-route lanes and heading errors where ego-vehicle intersects.
     :param ego_state: state of ego-vehicle
@@ -102,22 +97,25 @@ def _get_intersecting_lanes(
     :param drivable_area_map: drivable area occupancy map
     :return: tuple of lists with lane objects and heading errors [rad].
     """
-    ego_position_array: npt.NDArray[np.float64] = ego_state.rear_axle.array
-    ego_rear_axle_point: Point = Point(*ego_position_array)
-    ego_heading: float = ego_state.rear_axle.heading
+    ego_se2_array: npt.NDArray[np.float64] = ego_state_se2.rear_axle_se2.array
+    ego_rear_axle_point: Point = Point(*ego_se2_array[PoseSE2Index.XY])
 
     intersecting_lanes = drivable_area_map.intersects(ego_rear_axle_point)
 
     on_route_lanes, on_route_heading_errors = [], []
-    for lane_id in intersecting_lanes:
-        if lane_id in route_lane_dict.keys():
+    for lane_token in intersecting_lanes:
+        assert isinstance(lane_token, str), f"Expected lane_id of type int, got {type(lane_token)}"
+        map_layer, lane_id = lane_token.split("_")
+        lane_id = int(lane_id)
+        if map_layer == "lane" and lane_id in route_lane_dict.keys():
             lane_object = route_lane_dict[lane_id]
-            lane_discrete_path: List[StateSE2] = lane_object.baseline_path.discrete_path
-            lane_state_se2_array = np.array([state.array for state in lane_discrete_path], dtype=np.float64)
-            lane_distances = (ego_position_array[None, ...] - lane_state_se2_array) ** 2
+            lane_centerline_se2: PolylineSE2 = lane_object.centerline.polyline_se2
+            lane_centerline_se2_array = lane_centerline_se2.array
+
+            lane_distances = (ego_se2_array[None, ..., PoseSE2Index.XY] - lane_centerline_se2_array) ** 2
             lane_distances = lane_distances.sum(axis=-1) ** 0.5
 
-            heading_error = lane_discrete_path[np.argmin(lane_distances)].heading - ego_heading
+            heading_error = lane_centerline_se2[np.argmin(lane_distances)].heading - ego_se2_array[PoseSE2Index.YAW]
             heading_error = np.abs(normalize_angle(heading_error))
 
             on_route_lanes.append(lane_object)
@@ -127,10 +125,10 @@ def _get_intersecting_lanes(
 
 
 def _get_starting_lane(
-    ego_state: EgoState,
-    route_lane_dict: Dict[str, LaneGraphEdgeMapObject],
-    drivable_area_map: PDMDrivableMap,
-) -> LaneGraphEdgeMapObject:
+    ego_state_se2: EgoStateSE2,
+    route_lane_dict: Dict[int, Lane],
+    drivable_area_map: OccupancyMap2D,
+) -> Lane:
     """
     Returns the most suitable starting lane, in ego's vicinity.
     :param ego_state: state of ego-vehicle
@@ -138,79 +136,83 @@ def _get_starting_lane(
     :param drivable_area_map: drivable area occupancy map
     :return: lane object (on-route)
     """
-    on_route_lanes, heading_error = _get_intersecting_lanes(ego_state, route_lane_dict, drivable_area_map)
+    on_route_lanes, heading_error = _get_intersecting_lanes(ego_state_se2, route_lane_dict, drivable_area_map)
 
-    if on_route_lanes:
+    if len(on_route_lanes) > 0:
         # 1. Option: find lanes from lane occupancy-map; select lane with lowest heading error
         return on_route_lanes[np.argmin(np.abs(heading_error))]
 
     # 2. Option: find any intersecting or close lane on-route
-    starting_lane: LaneGraphEdgeMapObject = None
+    starting_lane: Optional[Lane] = None
     closest_distance = np.inf
-    for edge in route_lane_dict.values():
-        if edge.contains_point(ego_state.center):
-            return edge
+    for lane in route_lane_dict.values():
+        if lane.shapely_polygon.contains(ego_state_se2.center_2d.shapely_point):
+            return lane
 
-        distance = edge.polygon.distance(ego_state.car_footprint.geometry)
+        distance = lane.shapely_polygon.distance(ego_state_se2.bounding_box_se2.shapely_polygon)
         if distance < closest_distance:
-            starting_lane = edge
+            starting_lane = lane
             closest_distance = distance
 
+    assert starting_lane is not None, "No starting lane found in route lane dict. Check map and route consistency."
     return starting_lane
 
 
 def _get_discrete_centerline(
-    current_lane: LaneGraphEdgeMapObject,
-    route_roadblock_dict: Dict[str, RoadBlockGraphEdgeMapObject],
-    route_lane_dict: Dict[str, LaneGraphEdgeMapObject],
+    current_lane: Lane,
+    route_lane_group_dict: Dict[int, LaneGroup],
+    route_lane_dict: Dict[int, Lane],
     search_depth: int = 30,
-) -> List[StateSE2]:
+) -> PolylineSE2:
     """
     Applies a Dijkstra search on the lane-graph to retrieve discrete centerline.
     :param current_lane: lane object of starting lane.
-    :param route_roadblock_dict: on-route roadblock dictionary
+    :param route_lane_group_dict: on-route lane group dictionary
     :param route_lane_dict: on-route lane dictionary
     :param search_depth: depth of search (for runtime), defaults to 30
     :return: list of discrete states on centerline (x,y,θ)
     """
-    roadblocks = list(route_roadblock_dict.values())
-    roadblock_ids = list(route_roadblock_dict.keys())
+    lane_groups = list(route_lane_group_dict.values())
+    lane_group_ids = list(route_lane_group_dict.keys())
 
-    start_idx = np.argmax(np.array(roadblock_ids) == current_lane.get_roadblock_id())
-    roadblock_window = roadblocks[start_idx : start_idx + search_depth]
+    start_idx = np.argmax(np.array(lane_group_ids) == current_lane.lane_group_id)
+    lane_group_window = lane_groups[start_idx : start_idx + search_depth]
 
     graph_search = Dijkstra(current_lane, list(route_lane_dict.keys()))
-    route_plan, _ = graph_search.search(roadblock_window[-1])
+    route_plan, _ = graph_search.search(lane_group_window[-1])
 
-    centerline_discrete_path: List[StateSE2] = []
+    centerline_sublines: List[npt.NDArray] = []
     for lane in route_plan:
-        centerline_discrete_path.extend(lane.baseline_path.discrete_path)
+        centerline_sublines.append(lane.centerline.polyline_se2.array)
 
-    return centerline_discrete_path
+    return PolylineSE2.from_array(np.vstack(centerline_sublines))
 
 
 def _get_proposal_paths(
-    current_lane: LaneGraphEdgeMapObject,
-    route_roadblock_dict: Dict[str, RoadBlockGraphEdgeMapObject],
-    route_lane_dict: Dict[str, LaneGraphEdgeMapObject],
+    current_lane: Lane,
+    route_lane_group_dict: Dict[int, LaneGroup],
+    route_lane_dict: Dict[int, Lane],
     lateral_offsets: Optional[List[float]],
-) -> List[PDMPath]:
+) -> List[PolylineSE2]:
     """
     Builds proposal paths: centerline at index 0, plus optional lateral offsets.
     :param current_lane: current or starting lane of path-planning
-    :param route_roadblock_dict: on-route roadblock dictionary
+    :param route_lane_group_dict: on-route lane group dictionary
     :param route_lane_dict: on-route lane dictionary
     :param lateral_offsets: optional centerline offsets for proposals
     :return: list of paths (index 0 is centerline)
     """
-    centerline_discrete_path = _get_discrete_centerline(current_lane, route_roadblock_dict, route_lane_dict)
-    centerline = PDMPath(centerline_discrete_path)
-
-    output_paths: List[PDMPath] = [centerline]
-
+    centerline_polyline_se2 = _get_discrete_centerline(
+        current_lane,
+        route_lane_group_dict,
+        route_lane_dict,
+    )
+    output_paths: List[PolylineSE2] = [centerline_polyline_se2]
     if lateral_offsets is not None:
         for lateral_offset in lateral_offsets:
-            offset_discrete_path = parallel_discrete_path(discrete_path=centerline_discrete_path, offset=lateral_offset)
-            output_paths.append(PDMPath(offset_discrete_path))
-
+            lateral_se2_array = translate_se2_array_along_body_frame(
+                centerline_polyline_se2.array,
+                Vector2D(0.0, lateral_offset),
+            )
+            output_paths.append(PolylineSE2.from_array(lateral_se2_array))
     return output_paths
