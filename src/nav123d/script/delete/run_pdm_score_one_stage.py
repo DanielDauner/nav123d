@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from hydra.utils import instantiate
 from nav123d.evaluate.pdm_score import pdm_score
+from nav123d.pdm.scoring.scene_aggregator import SceneAggregator
 from nav123d.planning.script.builders.worker_pool_builder import build_worker
 from nav123d.traffic_agents_policies.abstract_traffic_agents_policy import AbstractTrafficAgentsPolicy
 from nuplan.common.actor_state.state_representation import StateSE2
@@ -24,7 +25,6 @@ from nav123d.common.dataloader import MetricCacheLoader, SceneFilter, SceneLoade
 from nav123d.common.enums import SceneFrameType
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.pdm.scoring.pdm_scorer import PDMScorer
-from nav123d.pdm.scoring.scene_aggregator import SceneAggregator
 from nav123d.pdm.simulation.pdm_simulator import PDMSimulator
 from nav123d.pdm.utils.pdm_enums import WeightedMetricIndex
 

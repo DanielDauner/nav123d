@@ -237,21 +237,23 @@ class PDMScorer:
             pdm_score = pdm_scores[proposal_idx]
 
             results.append(
-                pd.DataFrame([
-                    PDMResults(
-                        no_at_fault_collisions=no_at_fault_collisions,
-                        drivable_area_compliance=drivable_area_compliance,
-                        driving_direction_compliance=driving_direction_compliance,
-                        traffic_light_compliance=traffic_light_compliance,
-                        ego_progress=ego_progress,
-                        time_to_collision_within_bound=time_to_collision_within_bound,
-                        comfort=comfort,
-                        multiplicative_metrics_prod=multiplicative_metrics_prod,
-                        weighted_metrics=weighted_metrics,
-                        weighted_metrics_array=self._config.weighted_metrics_array,
-                        pdm_score=pdm_score,
-                    )
-                ])
+                pd.DataFrame(
+                    [
+                        PDMResults(
+                            no_at_fault_collisions=no_at_fault_collisions,
+                            drivable_area_compliance=drivable_area_compliance,
+                            driving_direction_compliance=driving_direction_compliance,
+                            traffic_light_compliance=traffic_light_compliance,
+                            ego_progress=ego_progress,
+                            time_to_collision_within_bound=time_to_collision_within_bound,
+                            comfort=comfort,
+                            multiplicative_metrics_prod=multiplicative_metrics_prod,
+                            weighted_metrics=weighted_metrics,
+                            weighted_metrics_array=self._config.weighted_metrics_array,
+                            pdm_score=pdm_score,
+                        )
+                    ]
+                )
             )
         return results
 
@@ -531,10 +533,12 @@ class PDMScorer:
         # calculate raw progress in meter
         progress_in_meter = np.zeros(self._state.num_proposals, dtype=np.float64)
         for proposal_idx in range(self._state.num_proposals):
-            progress_query = np.array([
-                self._state.ego_coords[proposal_idx, 0, BBCoordsIndex.CENTER],  # start point
-                self._state.ego_coords[proposal_idx, -1, BBCoordsIndex.CENTER],  # end point
-            ])
+            progress_query = np.array(
+                [
+                    self._state.ego_coords[proposal_idx, 0, BBCoordsIndex.CENTER],  # start point
+                    self._state.ego_coords[proposal_idx, -1, BBCoordsIndex.CENTER],  # end point
+                ]
+            )
             progress = self._state.centerline.project(progress_query)
             assert progress.shape == (2,), f"Expected progress shape (2,), got {progress.shape}"
             progress_in_meter[proposal_idx] = progress[1] - progress[0]

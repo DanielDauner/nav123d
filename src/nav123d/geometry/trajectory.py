@@ -100,7 +100,6 @@ class TrajectorySE2:
         timestamps: npt.NDArray[np.int64],
         # trajectory_sampling: Optional[TrajectorySampling] = None,
     ) -> None:
-
         self.pose_se2_array = pose_se2_array
         self.timestamps = timestamps
         # self.trajectory_sampling = trajectory_sampling

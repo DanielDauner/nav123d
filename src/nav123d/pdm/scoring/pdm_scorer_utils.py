@@ -62,10 +62,12 @@ def get_collision_type(
         collision_type = CollisionType.ACTIVE_REAR_COLLISION
 
     # Front bumper collision when both ego and track are not stopped
-    elif LineString([
-        ego_polygon.exterior.coords[0],
-        ego_polygon.exterior.coords[3],
-    ]).intersects(box_detection_polygon):
+    elif LineString(
+        [
+            ego_polygon.exterior.coords[0],
+            ego_polygon.exterior.coords[3],
+        ]
+    ).intersects(box_detection_polygon):
         collision_type = CollisionType.ACTIVE_FRONT_COLLISION
 
     # Lateral collision when both ego and track are not stopped
@@ -116,10 +118,12 @@ def get_agent_relative_angle(ego_pose_se2: PoseSE2, agent_pose_se2: PoseSE2) -> 
     :param agent_pose_se2: pose of an agent
     :return: relative angle in radians.
     """
-    agent_vector: npt.NDArray[np.float32] = np.array([
-        agent_pose_se2.x - ego_pose_se2.x,
-        agent_pose_se2.y - ego_pose_se2.y,
-    ])
+    agent_vector: npt.NDArray[np.float32] = np.array(
+        [
+            agent_pose_se2.x - ego_pose_se2.x,
+            agent_pose_se2.y - ego_pose_se2.y,
+        ]
+    )
     ego_vector: npt.NDArray[np.float32] = np.array([np.cos(ego_pose_se2.yaw), np.sin(ego_pose_se2.yaw)])
     dot_product = np.dot(ego_vector, agent_vector / np.linalg.norm(agent_vector))
     return float(np.arccos(dot_product))
