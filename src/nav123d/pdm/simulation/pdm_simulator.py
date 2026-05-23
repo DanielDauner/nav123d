@@ -56,7 +56,7 @@ class PDMSimulator:
         for time_idx in range(1, self.proposal_sampling.num_poses + 1):
             # 1. Track the trajectory with controller to get commands (steering rate and acceleration)
             command_states = self._tracker.track_trajectory(
-                time_idx=time_idx,
+                time_idx=time_idx - 1,
                 initial_states=simulated_states[:, time_idx - 1],
                 proposal_states=proposal_states,
                 velocity_profile=velocity_profile,

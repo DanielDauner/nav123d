@@ -166,9 +166,9 @@ class PDMGenerator:
         :return: InterpolatedTrajectory class
         """
         assert self._state is not None, "PDMGenerator: call generate_proposals first!"
-        _num_poses = self._trajectory_sampling.num_poses
-        assert _num_poses is not None, "PDMGenerator: number of trajectory poses must be defined!"
-        assert len(self._state.time_point_list) == _num_poses + 1, "PDMGenerator: Proposals must be generated first!"
+        assert len(self._state.time_point_list) == self._proposal_sampling.num_poses + 1, (
+            "PDMGenerator: Proposals must be generated first!"
+        )
 
         lateral_batch_idcs = [proposal_idx]
         current_time_point = self._state.time_point_list[-1].time_us

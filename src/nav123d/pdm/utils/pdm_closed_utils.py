@@ -112,10 +112,14 @@ def _get_intersecting_lanes(
             lane_centerline_se2: PolylineSE2 = lane_object.centerline.polyline_se2
             lane_centerline_se2_array = lane_centerline_se2.array
 
-            lane_distances = (ego_se2_array[None, ..., PoseSE2Index.XY] - lane_centerline_se2_array) ** 2
+            lane_distances = (
+                ego_se2_array[None, ..., PoseSE2Index.XY] - lane_centerline_se2_array[..., PoseSE2Index.XY]
+            ) ** 2
             lane_distances = lane_distances.sum(axis=-1) ** 0.5
 
-            heading_error = lane_centerline_se2[np.argmin(lane_distances)].heading - ego_se2_array[PoseSE2Index.YAW]
+            heading_error = (
+                lane_centerline_se2[np.argmin(lane_distances)][..., PoseSE2Index.YAW] - ego_se2_array[PoseSE2Index.YAW]
+            )
             heading_error = np.abs(normalize_angle(heading_error))
 
             on_route_lanes.append(lane_object)

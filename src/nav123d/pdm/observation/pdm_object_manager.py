@@ -158,7 +158,7 @@ class PDMObjectManager:
                 object_bbse2 = object_bbse2[None, ...]
                 object_dxy = object_dxy[None, ...]
 
-            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY, :] - position_coords) ** 2.0).sum(
+            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY] - position_coords) ** 2.0).sum(
                 axis=-1
             ) ** 0.5
 
@@ -187,7 +187,7 @@ class PDMObjectManager:
             if object_bbse2.ndim == 1:
                 object_bbse2 = object_bbse2[None, ...]
 
-            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY, :] - position_coords) ** 2.0).sum(
+            position_to_center_dist = ((object_bbse2[..., BoundingBoxSE2Index.XY] - position_coords) ** 2.0).sum(
                 axis=-1
             ) ** 0.5
 

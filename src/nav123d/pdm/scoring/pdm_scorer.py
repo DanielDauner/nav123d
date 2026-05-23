@@ -276,7 +276,7 @@ class PDMScorer:
         self._state.weighted_metrics[WeightedMetricIndex.PROGRESS] = normalized_progress
 
         weighted_metrics_array = self._config.weighted_metrics_array
-        weighted_metric_scores = (self._state.weighted_metrics * weighted_metrics_array).sum(axis=0)
+        weighted_metric_scores = (self._state.weighted_metrics * weighted_metrics_array[..., None]).sum(axis=0)
         weighted_metric_scores /= weighted_metrics_array.sum()
 
         # calculate final scores
@@ -533,15 +533,13 @@ class PDMScorer:
         # calculate raw progress in meter
         progress_in_meter = np.zeros(self._state.num_proposals, dtype=np.float64)
         for proposal_idx in range(self._state.num_proposals):
-            progress_query = np.array(
-                [
-                    self._state.ego_coords[proposal_idx, 0, BBCoordsIndex.CENTER],  # start point
-                    self._state.ego_coords[proposal_idx, -1, BBCoordsIndex.CENTER],  # end point
-                ]
+            progress_start = self._state.centerline.project(
+                self._state.ego_coords[proposal_idx, 0, BBCoordsIndex.CENTER]
             )
-            progress = self._state.centerline.project(progress_query)
-            assert progress.shape == (2,), f"Expected progress shape (2,), got {progress.shape}"
-            progress_in_meter[proposal_idx] = progress[1] - progress[0]
+            progress_end = self._state.centerline.project(
+                self._state.ego_coords[proposal_idx, -1, BBCoordsIndex.CENTER]
+            )
+            progress_in_meter[proposal_idx] = progress_end - progress_start
 
         self._progress_raw = np.clip(progress_in_meter, a_min=0, a_max=None)
 
