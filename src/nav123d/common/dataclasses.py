@@ -847,8 +847,7 @@ class PDMResults:
 
     ego_progress: float
     time_to_collision_within_bound: float
-    lane_keeping: float
-    history_comfort: float
+    comfort: float
 
     multiplicative_metrics_prod: float
     weighted_metrics: npt.NDArray[np.float64]
@@ -869,8 +868,7 @@ class PDMResults:
             traffic_light_compliance=np.nan,
             ego_progress=np.nan,
             time_to_collision_within_bound=np.nan,
-            lane_keeping=np.nan,
-            history_comfort=np.nan,
+            comfort=np.nan,
             multiplicative_metrics_prod=np.nan,
             weighted_metrics=np.nan,
             weighted_metrics_array=np.nan,

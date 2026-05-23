@@ -75,7 +75,7 @@ def _fit_initial_velocity_and_acceleration_profile(
     heading_profile: npt.NDArray[np.float64],
     discretization_time: float,
     jerk_penalty: float,
-) -> Tuple[float, npt.NDArray[np.float64]]:
+) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """
     Estimates initial velocity (v_0) and acceleration ({a_0, ...}) using least squares with jerk penalty regularization.
     :param xy_displacements: [m] Deviations in x and y occurring between M+1 poses, a M by 2 matrix.
@@ -138,7 +138,7 @@ def _fit_initial_curvature_and_curvature_rate_profile(
     discretization_time: float,
     curvature_rate_penalty: float,
     initial_curvature_penalty: float = INITIAL_CURVATURE_PENALTY,
-) -> Tuple[float, npt.NDArray[np.float64]]:
+) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """
     Estimates initial curvature (curvature_0) and curvature rate ({curvature_rate_0, ...})
     using least squares with curvature rate regularization.

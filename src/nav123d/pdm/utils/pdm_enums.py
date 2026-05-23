@@ -1,110 +1,43 @@
 # TODO: Move & rename this file for common usage (not specific for PDM)
-# TODO: Remove @classmethod + @property decorators (deprecated in Python 3.13)
 from enum import IntEnum
 
+from py123d.common.utils.enums import classproperty
 
-class StateIndex:
+
+class StateIndex(IntEnum):
     """Index mapping for array representation of ego states."""
 
-    _X = 0
-    _Y = 1
-    _HEADING = 2
-    _VELOCITY_X = 3
-    _VELOCITY_Y = 4
-    _ACCELERATION_X = 5
-    _ACCELERATION_Y = 6
-    _STEERING_ANGLE = 7
-    _STEERING_RATE = 8
-    _ANGULAR_VELOCITY = 9
-    _ANGULAR_ACCELERATION = 10
+    X = 0
+    Y = 1
+    HEADING = 2
+    VELOCITY_X = 3
+    VELOCITY_Y = 4
+    ACCELERATION_X = 5
+    ACCELERATION_Y = 6
+    STEERING_ANGLE = 7
+    STEERING_RATE = 8
+    ANGULAR_VELOCITY = 9
+    ANGULAR_ACCELERATION = 10
 
-    @classmethod
-    def size(cls):
-        valid_attributes = [
-            attribute
-            for attribute in dir(cls)
-            if attribute.startswith("_") and not attribute.startswith("__") and not callable(getattr(cls, attribute))
-        ]
-        return len(valid_attributes)
-
-    @classmethod
-    @property
-    def X(cls):
-        return cls._X
-
-    @classmethod
-    @property
-    def Y(cls):
-        return cls._Y
-
-    @classmethod
-    @property
-    def HEADING(cls):
-        return cls._HEADING
-
-    @classmethod
-    @property
-    def VELOCITY_X(cls):
-        return cls._VELOCITY_X
-
-    @classmethod
-    @property
-    def VELOCITY_Y(cls):
-        return cls._VELOCITY_Y
-
-    @classmethod
-    @property
-    def ACCELERATION_X(cls):
-        return cls._ACCELERATION_X
-
-    @classmethod
-    @property
-    def ACCELERATION_Y(cls):
-        return cls._ACCELERATION_Y
-
-    @classmethod
-    @property
-    def STEERING_ANGLE(cls):
-        return cls._STEERING_ANGLE
-
-    @classmethod
-    @property
-    def STEERING_RATE(cls):
-        return cls._STEERING_RATE
-
-    @classmethod
-    @property
-    def ANGULAR_VELOCITY(cls):
-        return cls._ANGULAR_VELOCITY
-
-    @classmethod
-    @property
-    def ANGULAR_ACCELERATION(cls):
-        return cls._ANGULAR_ACCELERATION
-
-    @classmethod
-    @property
-    def POINT(cls):
+    @classproperty
+    def POINT(cls) -> slice:
         # assumes X, Y have subsequent indices
-        return slice(cls._X, cls._Y + 1)
+        return slice(cls.X, cls.Y + 1)
 
-    @classmethod
-    @property
-    def STATE_SE2(cls):
+    @classproperty
+    def STATE_SE2(cls) -> slice:
         # assumes X, Y, HEADING have subsequent indices
-        return slice(cls._X, cls._HEADING + 1)
+        return slice(cls.X, cls.HEADING + 1)
 
-    @classmethod
-    @property
-    def VELOCITY_2D(cls):
+    @classproperty
+    def VELOCITY_2D(cls) -> slice:
         # assumes velocity X, Y have subsequent indices
-        return slice(cls._VELOCITY_X, cls._VELOCITY_Y + 1)
+        return slice(cls.VELOCITY_X, cls.VELOCITY_Y + 1)
 
-    @classmethod
-    @property
-    def ACCELERATION_2D(cls):
+    @classproperty
+    def ACCELERATION_2D(cls) -> slice:
         # assumes acceleration X, Y have subsequent indices
-        return slice(cls._ACCELERATION_X, cls._ACCELERATION_Y + 1)
+        return slice(cls.ACCELERATION_X, cls.ACCELERATION_Y + 1)
 
 
 class PointIndex(IntEnum):
@@ -160,6 +93,7 @@ class EgoAreaIndex(IntEnum):
     MULTIPLE_LANES = 0
     NON_DRIVABLE_AREA = 1
     ONCOMING_TRAFFIC = 2
+    INTERSECTION = 3
 
 
 class MultiMetricIndex(IntEnum):
@@ -176,6 +110,4 @@ class WeightedMetricIndex(IntEnum):
 
     PROGRESS = 0
     TTC = 1
-    LANE_KEEPING = 2
-    HISTORY_COMFORT = 3
-    TWO_FRAME_EXTENDED_COMFORT = 4
+    COMFORT = 2

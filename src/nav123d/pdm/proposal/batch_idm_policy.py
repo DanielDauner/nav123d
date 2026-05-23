@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -57,17 +57,17 @@ class BatchIDMPolicy:
 
         for i in range(self._num_policies):
             self._fallback_target_velocities[i] = (
-                fallback_target_velocity if isinstance(fallback_target_velocity, float) else fallback_target_velocity[i]
+                fallback_target_velocity if isinstance(fallback_target_velocity, float) else fallback_target_velocity[i]  # type: ignore
             )
             self._speed_limit_fractions[i] = (
-                speed_limit_fraction if isinstance(speed_limit_fraction, float) else speed_limit_fraction[i]
+                speed_limit_fraction if isinstance(speed_limit_fraction, float) else speed_limit_fraction[i]  # type: ignore
             )
             self._min_gap_to_lead_agent[i] = (
-                min_gap_to_lead_agent if isinstance(min_gap_to_lead_agent, float) else min_gap_to_lead_agent[i]
+                min_gap_to_lead_agent if isinstance(min_gap_to_lead_agent, float) else min_gap_to_lead_agent[i]  # type: ignore
             )
-            self._headway_time[i] = headway_time if isinstance(headway_time, float) else headway_time[i]
-            self._accel_max[i] = accel_max if isinstance(accel_max, float) else accel_max[i]
-            self._decel_max[i] = decel_max if isinstance(decel_max, float) else decel_max[i]
+            self._headway_time[i] = headway_time if isinstance(headway_time, float) else headway_time[i]  # type: ignore
+            self._accel_max[i] = accel_max if isinstance(accel_max, float) else accel_max[i]  # type: ignore
+            self._decel_max[i] = decel_max if isinstance(decel_max, float) else decel_max[i]  # type: ignore
 
         # lazy loaded
         self._target_velocities: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
@@ -88,7 +88,7 @@ class BatchIDMPolicy:
         """
         return np.max(self._target_velocities)
 
-    def update(self, speed_limit_mps: float):
+    def update(self, speed_limit_mps: Optional[float]):
         """
         Updates class with current speed limit
         :param speed_limit_mps: speed limit of current lane [m/s]

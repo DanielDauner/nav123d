@@ -1,32 +1,17 @@
 from typing import Dict, Tuple
 
 import numpy as np
-from py123d.datatypes import BoxDetectionSE2, DefaultBoxDetectionLabel
+from py123d.datatypes import BoxDetectionSE2
 from py123d.geometry import BoundingBoxSE2Index, Point2D
 from py123d.geometry.utils.rotation_utils import normalize_angle
+
+from nav123d.pdm.utils.pdm_constants import DYNAMIC_OBJECT_LABELS
 
 MAX_DYNAMIC_OBJECTS_PER_LABEL: Dict[str, int] = {
     "vehicle": 50,
     "person": 25,
     "two_wheeler": 10,
     "else": 10,
-}
-
-DYNAMIC_OBJECT_LABELS = {
-    DefaultBoxDetectionLabel.VEHICLE,
-    DefaultBoxDetectionLabel.PERSON,
-    DefaultBoxDetectionLabel.TWO_WHEELER,
-    DefaultBoxDetectionLabel.ANIMAL,
-    DefaultBoxDetectionLabel.TRAIN,
-    DefaultBoxDetectionLabel.OTHER,
-}
-
-STATIC_OBJECT_LABELS = {
-    DefaultBoxDetectionLabel.TRAFFIC_SIGN,
-    DefaultBoxDetectionLabel.TRAFFIC_CONE,
-    DefaultBoxDetectionLabel.TRAFFIC_LIGHT,
-    DefaultBoxDetectionLabel.BARRIER,
-    DefaultBoxDetectionLabel.GENERIC_OBJECT,
 }
 
 MAX_STATIC_OBJECTS: int = 50

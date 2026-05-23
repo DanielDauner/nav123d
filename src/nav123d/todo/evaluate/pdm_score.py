@@ -213,7 +213,7 @@ def pdm_score_from_interpolated_trajectory(
             weighted_metrics[WeightedMetricIndex.PROGRESS] = pdm_result.at[0, "ego_progress"]
             weighted_metrics[WeightedMetricIndex.TTC] = pdm_result.at[0, "time_to_collision_within_bound"]
             weighted_metrics[WeightedMetricIndex.LANE_KEEPING] = pdm_result.at[0, "lane_keeping"]
-            weighted_metrics[WeightedMetricIndex.HISTORY_COMFORT] = pdm_result.at[0, "history_comfort"]
+            weighted_metrics[WeightedMetricIndex.COMFORT] = pdm_result.at[0, "history_comfort"]
             pdm_result.at[0, "weighted_metrics"] = weighted_metrics
 
     return pdm_result, simulated_states[pred_idx]

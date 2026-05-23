@@ -2,10 +2,8 @@ import copy
 
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.state_representation import TimePoint
-from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, get_pacifica_parameters
-from nuplan.common.geometry.compute import principal_value
+from py123d.datatypes import EgoStateSE3Metadata, Timestamp
+from py123d.geometry.utils.rotation_utils import normalize_angle
 
 from nav123d.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
 
@@ -13,7 +11,7 @@ from nav123d.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
 def forward_integrate(
     init: npt.NDArray[np.float64],
     delta: npt.NDArray[np.float64],
-    sampling_time: TimePoint,
+    sampling_time: Timestamp,
 ) -> npt.NDArray[np.float64]:
     """
     Performs a simple euler integration.
@@ -32,27 +30,25 @@ class BatchKinematicBicycleModel:
 
     def __init__(
         self,
-        vehicle: VehicleParameters = get_pacifica_parameters(),
         max_steering_angle: float = np.pi / 3,
         accel_time_constant: float = 0.2,
         steering_angle_time_constant: float = 0.05,
     ):
         """
         Construct BatchKinematicBicycleModel.
-        :param vehicle: Vehicle parameters.
         :param max_steering_angle: [rad] Maximum absolute value steering angle allowed by model.
         :param accel_time_constant: low pass filter time constant for acceleration in s
         :param steering_angle_time_constant: low pass filter time constant for steering angle in s
         """
-        self._vehicle = vehicle
         self._max_steering_angle = max_steering_angle
         self._accel_time_constant = accel_time_constant
         self._steering_angle_time_constant = steering_angle_time_constant
 
-    def get_state_dot(self, states: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def get_state_dot(self, states: npt.NDArray[np.float64], wheel_base: float) -> npt.NDArray[np.float64]:
         """
         Calculates the changing rate of state array representation.
         :param states: array describing the state of the ego-vehicle
+        :param wheel_base: The wheel base of the vehicle
         :return: change rate across several state values
         """
         state_dots = np.zeros(states.shape, dtype=np.float64)
@@ -62,7 +58,7 @@ class BatchKinematicBicycleModel:
         state_dots[:, StateIndex.X] = longitudinal_speeds * np.cos(states[:, StateIndex.HEADING])
         state_dots[:, StateIndex.Y] = longitudinal_speeds * np.sin(states[:, StateIndex.HEADING])
         state_dots[:, StateIndex.HEADING] = (
-            longitudinal_speeds * np.tan(states[:, StateIndex.STEERING_ANGLE]) / self._vehicle.wheel_base
+            longitudinal_speeds * np.tan(states[:, StateIndex.STEERING_ANGLE]) / wheel_base
         )
 
         state_dots[:, StateIndex.VELOCITY_2D] = states[:, StateIndex.ACCELERATION_2D]
@@ -76,8 +72,8 @@ class BatchKinematicBicycleModel:
         self,
         states: npt.NDArray[np.float64],
         command_states: npt.NDArray[np.float64],
-        sampling_time: TimePoint,
-    ) -> EgoState:
+        sampling_time: Timestamp,
+    ) -> npt.NDArray[np.float64]:
         """
         This function applies some first order control delay/a low pass filter to acceleration/steering.
 
@@ -114,23 +110,26 @@ class BatchKinematicBicycleModel:
         self,
         states: npt.NDArray[np.float64],
         command_states: npt.NDArray[np.float64],
-        sampling_time: TimePoint,
+        sampling_time: Timestamp,
+        ego_metadata: EgoStateSE3Metadata,
     ) -> npt.NDArray[np.float64]:
         """
         Propagates ego state array forward with motion model.
         :param states: state array representation of the ego-vehicle
         :param command_states: command array representation of controller
-        :param sampling_time: time to propagate [s]
-        :return: updated tate array representation of the ego-vehicle
+        :param sampling_time: time delta to propagate as Timestamp
+        :param ego_metadata: Metadata for the ego state
+        :return: updated state array representation of the ego-vehicle
         """
 
         assert len(states) == len(command_states), "Batch size of states and command_states does not match!"
 
+        wheel_base = ego_metadata.wheel_base
         propagating_state = self._update_commands(states, command_states, sampling_time)
         output_state = copy.deepcopy(states)
 
         # Compute state derivatives
-        state_dot = self.get_state_dot(propagating_state)
+        state_dot = self.get_state_dot(propagating_state, wheel_base)
 
         output_state[:, StateIndex.X] = forward_integrate(
             states[:, StateIndex.X], state_dot[:, StateIndex.X], sampling_time
@@ -139,7 +138,7 @@ class BatchKinematicBicycleModel:
             states[:, StateIndex.Y], state_dot[:, StateIndex.Y], sampling_time
         )
 
-        output_state[:, StateIndex.HEADING] = principal_value(
+        output_state[:, StateIndex.HEADING] = normalize_angle(
             forward_integrate(
                 states[:, StateIndex.HEADING],
                 state_dot[:, StateIndex.HEADING],
@@ -168,9 +167,7 @@ class BatchKinematicBicycleModel:
         )
 
         output_state[:, StateIndex.ANGULAR_VELOCITY] = (
-            output_state[:, StateIndex.VELOCITY_X]
-            * np.tan(output_state[:, StateIndex.STEERING_ANGLE])
-            / self._vehicle.wheel_base
+            output_state[:, StateIndex.VELOCITY_X] * np.tan(output_state[:, StateIndex.STEERING_ANGLE]) / wheel_base
         )
 
         output_state[:, StateIndex.ACCELERATION_2D] = state_dot[:, StateIndex.VELOCITY_2D]

@@ -2,12 +2,11 @@ from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.state_representation import StateSE2, StateVector2D, TimePoint
-from nuplan.common.geometry.convert import relative_to_absolute_poses
-from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
+from py123d.datatypes import EgoStateSE2
+from py123d.geometry import PoseSE2Index
+from py123d.geometry.transform import rel_to_abs_se2_array
 
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.pdm.scoring.pdm_scorer import PDMScorer
 
 
@@ -45,49 +44,57 @@ class PDMEmergencyBrake:
         self._time_to_infraction_threshold: float = time_to_infraction_threshold
         self._infraction: str = infraction
 
-        assert self._infraction in [
+        assert self._infraction in {
             "collision",
             "ttc",
-        ], f"PDMEmergencyBraking: Infraction {self._infraction} not available as brake condition!"
+        }, f"PDMEmergencyBraking: Infraction {self._infraction} not available as brake condition!"
 
     def brake_if_emergency(
-        self, ego_state: EgoState, scores: npt.NDArray[np.float64], scorer: PDMScorer
-    ) -> Optional[InterpolatedTrajectory]:
+        self, ego_state_se2: EgoStateSE2, scores: npt.NDArray[np.float64], scorer: PDMScorer
+    ) -> Optional[TrajectorySE2]:
         """
         Applies emergency brake only if an infraction is expected within horizon.
         :param ego_state: state object of ego
         :param scores: array of proposal scores
-        :param metric: scorer class of PDM
+        :param scorer: scorer class of PDM
         :return: brake trajectory or None
         """
 
         trajectory = None
-        ego_speed: float = ego_state.dynamic_car_state.speed
+        assert ego_state_se2.dynamic_state_se2 is not None, (
+            "PDMEmergencyBraking: EgoStateSE2 must have dynamic state for brake decision!"
+        )
+        ego_speed: float = ego_state_se2.dynamic_state_se2.velocity_2d.magnitude
 
         proposal_idx = np.argmax(scores)
 
         # retrieve time to infraction depending on brake detection mode
         if self._infraction == "ttc":
-            time_to_infraction = scorer.time_to_ttc_infraction(proposal_idx)
+            time_to_infraction = scorer.time_to_ttc_infraction(int(proposal_idx))
 
         elif self._infraction == "collision":
-            time_to_infraction = scorer.time_to_at_fault_collision(proposal_idx)
+            time_to_infraction = scorer.time_to_at_fault_collision(int(proposal_idx))
+        else:
+            raise ValueError(f"PDMEmergencyBraking: Infraction {self._infraction} not available as brake condition!")
 
         # check time to infraction below threshold
         if time_to_infraction <= self._time_to_infraction_threshold and ego_speed <= self._max_ego_speed:
-            trajectory = self._generate_trajectory(ego_state)
+            trajectory = self._generate_trajectory(ego_state_se2)
 
         return trajectory
 
-    def _generate_trajectory(self, ego_state: EgoState) -> InterpolatedTrajectory:
+    def _generate_trajectory(self, ego_state_se2: EgoStateSE2) -> TrajectorySE2:
         """
         Generates trajectory for reach zero velocity.
         :param ego_state: state object of ego
         :return: InterpolatedTrajectory for braking
         """
-        current_time_point = ego_state.time_point
-        current_velocity = ego_state.dynamic_car_state.center_velocity_2d.x
-        current_acceleration = ego_state.dynamic_car_state.center_acceleration_2d.x
+        current_time_point = ego_state_se2.timestamp
+        assert ego_state_se2.dynamic_state_se2 is not None, (
+            "PDMEmergencyBraking: EgoStateSE2 must have dynamic state for trajectory generation!"
+        )
+        current_velocity = ego_state_se2.dynamic_state_se2.velocity_2d.x
+        current_acceleration = ego_state_se2.dynamic_state_se2.acceleration_2d.x
 
         target_velocity = 0.0
 
@@ -113,23 +120,15 @@ class PDMEmergencyBrake:
 
             correcting_velocity = max(min(u_t, self._max_long_accel), self._min_long_accel)
 
-        trajectory_states = []
+        pose_se2_array = np.zeros((self._trajectory_sampling.num_poses + 1, len(PoseSE2Index)), dtype=np.float64)
+        timestamps = np.zeros((self._trajectory_sampling.num_poses + 1,), dtype=np.int64)
 
         # Propagate planned trajectory for set number of samples
-        for sample in range(self._trajectory_sampling.num_poses + 1):
-            time_t = self._trajectory_sampling.interval_length * sample
-            pose = relative_to_absolute_poses(ego_state.center, [StateSE2(correcting_velocity * time_t, 0, 0)])[0]
+        for time_idx in range(self._trajectory_sampling.num_poses + 1):
+            time_t = self._trajectory_sampling.interval_length * time_idx
+            pose_se2_array[time_idx, PoseSE2Index.X] = correcting_velocity * time_t
+            timestamps[time_idx] = current_time_point.time_us + int(time_t * 1e6)
 
-            ego_state_ = EgoState.build_from_center(
-                center=pose,
-                center_velocity_2d=StateVector2D(0, 0),
-                center_acceleration_2d=StateVector2D(0, 0),
-                tire_steering_angle=0.0,
-                time_point=current_time_point,
-                vehicle_parameters=ego_state.car_footprint.vehicle_parameters,
-            )
-            trajectory_states.append(ego_state_)
-
-            current_time_point += TimePoint(int(self._trajectory_sampling.interval_length * 1e6))
-
-        return InterpolatedTrajectory(trajectory_states)
+        # Transform to absolute coordinates
+        pose_se2_array = rel_to_abs_se2_array(ego_state_se2.center_se2, pose_se2_array)
+        return TrajectorySE2(pose_se2_array, timestamps)

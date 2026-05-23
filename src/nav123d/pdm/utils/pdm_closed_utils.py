@@ -82,7 +82,7 @@ def build_drivable_area_occupancy_map(
     for map_layer in query_dict.keys():
         for map_object in query_dict[map_layer]:
             assert isinstance(map_object, BaseMapSurfaceObject), f"Expected Surface, got {type(map_object)}"
-            drivable_objects_dict[f"{map_layer.serialize()}_{map_object.object_id}"] = map_object.shapely_polygon
+            drivable_objects_dict[f"{map_layer.serialize()}-{map_object.object_id}"] = map_object.shapely_polygon
 
     return OccupancyMap2D.from_dict(drivable_objects_dict)  # type: ignore
 
@@ -105,7 +105,7 @@ def _get_intersecting_lanes(
     on_route_lanes, on_route_heading_errors = [], []
     for lane_token in intersecting_lanes:
         assert isinstance(lane_token, str), f"Expected lane_id of type int, got {type(lane_token)}"
-        map_layer, lane_id = lane_token.split("_")
+        map_layer, lane_id = lane_token.split("-")
         lane_id = int(lane_id)
         if map_layer == "lane" and lane_id in route_lane_dict.keys():
             lane_object = route_lane_dict[lane_id]

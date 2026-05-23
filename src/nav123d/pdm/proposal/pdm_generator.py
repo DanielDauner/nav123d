@@ -1,25 +1,41 @@
-import copy
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.agent import Agent
-from nuplan.common.actor_state.car_footprint import CarFootprint
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.scene_object import SceneObject
-from nuplan.common.actor_state.state_representation import StateSE2, TimePoint
-from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
-from nuplan.common.geometry.transform import transform
-from nuplan.planning.simulation.trajectory.interpolated_trajectory import InterpolatedTrajectory
-from shapely.geometry import Point, Polygon
+from py123d.datatypes import BoxDetectionSE2, EgoStateSE2, EgoStateSE3Metadata, Timestamp
+from py123d.datatypes.vehicle_state.ego_state_metadata import imu_se2_to_center_se2, rear_axle_se2_to_imu_se2
+from py123d.geometry import BoundingBoxSE2, PoseSE2
+from py123d.geometry.utils.rotation_utils import normalize_angle
+from shapely.geometry import Polygon
 from shapely.geometry.base import CAP_STYLE
 
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.pdm.observation.pdm_observation import PDMObservation
 from nav123d.pdm.proposal.pdm_proposal import PDMProposalManager
-from nav123d.pdm.utils.pdm_array_representation import state_array_to_ego_states
+from nav123d.pdm.utils.pdm_constants import DYNAMIC_OBJECT_LABELS
 from nav123d.pdm.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex, StateIndex
-from nav123d.pdm.utils.pdm_geometry_utils import normalize_angle
+
+
+@dataclass
+class PDMGeneratorState:
+    """Dataclass to store the state of the PDMGenerator, for debugging and visualization purposes."""
+
+    state_array: npt.NDArray[np.float64]
+    state_idm_array: npt.NDArray[np.float64]
+    leading_agent_array: npt.NDArray[np.float64]
+
+    proposal_manager: PDMProposalManager
+    observation: PDMObservation
+
+    initial_ego_state_se2: EgoStateSE2
+
+    driving_corridor_cache: Dict[int, Polygon]
+    time_point_list: List[Timestamp]
+
+    @property
+    def ego_metadata(self) -> EgoStateSE3Metadata:
+        return self.initial_ego_state_se2.metadata
 
 
 class PDMGenerator:
@@ -42,31 +58,82 @@ class PDMGenerator:
         )
 
         # trajectory config
-        self._trajectory_sampling: int = trajectory_sampling
-        self._proposal_sampling: int = proposal_sampling
-        self._sample_interval: float = trajectory_sampling.interval_length
+        self._trajectory_sampling: TrajectorySampling = trajectory_sampling
+        self._proposal_sampling: TrajectorySampling = proposal_sampling
+        _sample_interval = trajectory_sampling.interval_length
+        assert _sample_interval is not None, "PDMGenerator: interval length must be defined!"
+        self._sample_interval: float = _sample_interval
 
         # generation config
         self._leading_agent_update: int = leading_agent_update_rate
 
         # lazy loaded
-        self._state_array: Optional[npt.NDArray[np.float64]] = None
-        self._state_idm_array: Optional[npt.NDArray[np.float64]] = None
-        self._leading_agent_array: Optional[npt.NDArray[np.float64]] = None
+        self._state: Optional[PDMGeneratorState] = None
 
-        self._proposal_manager: Optional[PDMProposalManager] = None
-        self._observation: Optional[PDMObservation] = None
+    def _init_state(
+        self,
+        initial_ego_state_se2: EgoStateSE2,
+        observation: PDMObservation,
+        proposal_manager: PDMProposalManager,
+    ) -> PDMGeneratorState:
+        """
+        Re-initializes several class attributes for unrolling in new iteration
+        :param initial_ego_state_se2: ego-vehicle state at t=0
+        :param observation: PDMObservation class
+        :param proposal_manager: PDMProposalManager class
+        """
+        assert initial_ego_state_se2 is not None, "PDMGenerator: initial_ego_state_se2 must be defined!"
+        assert observation is not None, "PDMGenerator: observation must be defined!"
+        assert proposal_manager is not None, "PDMGenerator: proposal_manager must be defined!"
 
-        self._initial_ego_state: Optional[EgoState] = None
-        self._vehicle_parameters: Optional[VehicleParameters] = None
+        # lazy loading
+        _proposal_manager = proposal_manager
+        _observation = observation
+        _initial_ego_state_se2 = initial_ego_state_se2
 
-        # caches
-        self._driving_corridor_cache: Optional[Dict[int, Polygon]] = None
-        self._time_point_list: Optional[List[TimePoint]] = None
+        # reset proposal state arrays
+        _state_array = np.zeros(
+            (
+                len(_proposal_manager),
+                self._trajectory_sampling.num_poses + 1,
+                len(StateIndex),
+            ),
+            dtype=np.float64,
+        )  # x, y, heading
+        _state_idm_array = np.zeros(
+            (len(_proposal_manager), self._trajectory_sampling.num_poses + 1, 2),
+            dtype=np.float64,
+        )  # progress, velocity
+        _leading_agent_array = np.zeros(
+            (len(_proposal_manager), self._trajectory_sampling.num_poses + 1, 3),
+            dtype=np.float64,
+        )  # progress, velocity, rear-length
+
+        # reset caches
+        _driving_corridor_cache: Dict[int, Polygon] = {}
+
+        initial_time_us = _initial_ego_state_se2.timestamp.time_us
+        proposal_num_poses = self._proposal_sampling.num_poses
+        assert proposal_num_poses is not None, "PDMGenerator: number of proposal poses must be defined!"
+        _time_point_list: List[Timestamp] = [Timestamp.from_us(initial_time_us)]
+        for time_idx in range(1, proposal_num_poses + 1, 1):
+            next_time_point = Timestamp.from_us(initial_time_us + int(time_idx * self._sample_interval * 1e6))
+            _time_point_list.append(next_time_point)
+
+        return PDMGeneratorState(
+            state_array=_state_array,
+            state_idm_array=_state_idm_array,
+            leading_agent_array=_leading_agent_array,
+            proposal_manager=_proposal_manager,
+            observation=_observation,
+            initial_ego_state_se2=_initial_ego_state_se2,
+            driving_corridor_cache=_driving_corridor_cache,
+            time_point_list=_time_point_list,
+        )
 
     def generate_proposals(
         self,
-        initial_ego_state: EgoState,
+        initial_ego_state: EgoStateSE2,
         observation: PDMObservation,
         proposal_manager: PDMProposalManager,
     ) -> npt.NDArray[np.float64]:
@@ -78,129 +145,82 @@ class PDMGenerator:
         :param proposal_manager: PDMProposalManager class
         :return: unrolled proposal states in array representation
         """
-        self._reset(initial_ego_state, observation, proposal_manager)
-        self._initialize_time_points()
+        self._state = self._init_state(initial_ego_state, observation, proposal_manager)
 
         # unroll proposals per path, to interpolate along batch-dim
         lateral_batch_dict = self._get_lateral_batch_dict()
 
-        for lateral_idx, lateral_batch_idcs in lateral_batch_dict.items():
-            self._initialize_states(lateral_batch_idcs)
+        for lateral_idx, lateral_batch_indices in lateral_batch_dict.items():
+            self._initialize_states(lateral_batch_indices)
             for time_idx in range(1, self._proposal_sampling.num_poses + 1, 1):
-                self._update_leading_agents(lateral_batch_idcs, time_idx)
-                self._update_idm_states(lateral_batch_idcs, time_idx)
-                self._update_states_se2(lateral_batch_idcs, time_idx)
+                self._update_leading_agents(lateral_batch_indices, time_idx)
+                self._update_idm_states(lateral_batch_indices, time_idx)
+                self._update_states_se2(lateral_batch_indices, time_idx)
 
-        return self._state_array
+        return self._state.state_array
 
-    def generate_trajectory(
-        self,
-        proposal_idx: int,
-    ) -> InterpolatedTrajectory:
+    def generate_trajectory(self, proposal_idx: int) -> TrajectorySE2:
         """
         Complete unrolling of final trajectory to number of trajectory samples.
         :param proposal_idx: index of best-scored proposal
         :return: InterpolatedTrajectory class
         """
-        assert len(self._time_point_list) == self._proposal_sampling.num_poses + 1, (
-            "PDMGenerator: Proposals must be generated first!"
-        )
+        assert self._state is not None, "PDMGenerator: call generate_proposals first!"
+        _num_poses = self._trajectory_sampling.num_poses
+        assert _num_poses is not None, "PDMGenerator: number of trajectory poses must be defined!"
+        assert len(self._state.time_point_list) == _num_poses + 1, "PDMGenerator: Proposals must be generated first!"
 
         lateral_batch_idcs = [proposal_idx]
-        current_time_point = copy.deepcopy(self._time_point_list[-1])
+        current_time_point = self._state.time_point_list[-1].time_us
 
         for time_idx in range(
             self._proposal_sampling.num_poses + 1,
             self._trajectory_sampling.num_poses + 1,
             1,
         ):
-            current_time_point += TimePoint(int(self._sample_interval * 1e6))
-            self._time_point_list.append(current_time_point)
+            current_time_point += int(self._sample_interval * 1e6)
+            self._state.time_point_list.append(Timestamp.from_us(current_time_point))
 
             self._update_leading_agents(lateral_batch_idcs, time_idx)
             self._update_idm_states(lateral_batch_idcs, time_idx)
             self._update_states_se2(lateral_batch_idcs, time_idx)
 
-        # convert array representation to list of EgoState class
-        ego_states: List[EgoState] = state_array_to_ego_states(
-            self._state_array[proposal_idx],
-            self._time_point_list,
-            self._vehicle_parameters,
+        # TODO: remove.
+        # # convert array representation to list of EgoState class
+        # ego_states: List[EgoStateSE2] = state_array_to_ego_states(
+        #     self._state.state_array[proposal_idx],
+        #     self._state.time_point_list,
+        #     self._state.ego_metadata,
+        # )
+        return TrajectorySE2(
+            pose_se2_array=self._state.state_array[proposal_idx, :, StateIndex.STATE_SE2],
+            timestamps=np.array(self._state.time_point_list),
         )
-        return InterpolatedTrajectory(ego_states)
-
-    def _reset(
-        self,
-        initial_ego_state: EgoState,
-        observation: PDMObservation,
-        proposal_manager: PDMProposalManager,
-    ) -> None:
-        """
-        Re-initializes several class attributes for unrolling in new iteration
-        :param initial_ego_state: ego-vehicle state at t=0
-        :param observation: PDMObservation class
-        :param proposal_manager: PDMProposalManager class
-        """
-
-        # lazy loading
-        self._proposal_manager: PDMProposalManager = proposal_manager
-        self._observation: PDMObservation = observation
-
-        self._initial_ego_state = initial_ego_state
-        self._vehicle_parameters = initial_ego_state.car_footprint.vehicle_parameters
-
-        # reset proposal state arrays
-        self._state_array: npt.NDArray[np.float64] = np.zeros(
-            (
-                len(self._proposal_manager),
-                self._trajectory_sampling.num_poses + 1,
-                StateIndex.size(),
-            ),
-            dtype=np.float64,
-        )  # x, y, heading
-        self._state_idm_array: npt.NDArray[np.float64] = np.zeros(
-            (len(self._proposal_manager), self._trajectory_sampling.num_poses + 1, 2),
-            dtype=np.float64,
-        )  # progress, velocity
-        self._leading_agent_array: npt.NDArray[np.float64] = np.zeros(
-            (len(self._proposal_manager), self._trajectory_sampling.num_poses + 1, 3),
-            dtype=np.float64,
-        )  # progress, velocity, rear-length
-
-        # reset caches
-        self._driving_corridor_cache: Dict[int, Polygon] = {}
-
-        self._time_point_list: List[TimePoint] = []
-        self._updated: bool = True
-
-    def _initialize_time_points(self) -> None:
-        """Initializes a list of TimePoint objects for proposal horizon."""
-        current_time_point = copy.deepcopy(self._initial_ego_state.time_point)
-        self._time_point_list = [current_time_point]
-        for time_idx in range(1, self._proposal_sampling.num_poses + 1, 1):
-            current_time_point += TimePoint(int(self._sample_interval * 1e6))
-            self._time_point_list.append(copy.deepcopy(current_time_point))
 
     def _initialize_states(self, lateral_batch_idcs: List[int]) -> None:
         """
         Initializes all state arrays for ego, IDM, and leading agent at t=0
         :param lateral_batch_idcs: list of proposal indices, sharing a path.
         """
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
 
         # all initial states are identical for shared lateral_idx
         # thus states are created for lateral_batch_idcs[0] and repeated
         dummy_proposal_idx = lateral_batch_idcs[0]
 
-        ego_position = Point(*self._initial_ego_state.rear_axle.point.array)
+        ego_position = self._state.initial_ego_state_se2.rear_axle_2d.shapely_point
 
-        ego_progress = self._proposal_manager[dummy_proposal_idx].linestring.project(ego_position)
-        ego_velocity = self._initial_ego_state.dynamic_car_state.rear_axle_velocity_2d.x
+        ego_progress = self._state.proposal_manager[dummy_proposal_idx].linestring.project(ego_position)
+        assert self._state.initial_ego_state_se2.dynamic_state_se2 is not None, (
+            "PDMGenerator: initial ego state must have dynamic state information!"
+        )
+        ego_velocity = self._state.initial_ego_state_se2.dynamic_state_se2.velocity_2d.x
 
-        self._state_idm_array[lateral_batch_idcs, 0, StateIDMIndex.PROGRESS] = ego_progress
-        self._state_idm_array[lateral_batch_idcs, 0, StateIDMIndex.VELOCITY] = ego_velocity
+        self._state.state_idm_array[lateral_batch_idcs, 0, StateIDMIndex.PROGRESS] = ego_progress
+        self._state.state_idm_array[lateral_batch_idcs, 0, StateIDMIndex.VELOCITY] = ego_velocity
 
-        state_array = self._proposal_manager[dummy_proposal_idx].path.interpolate([ego_progress], as_array=True)[0]
-        self._state_array[lateral_batch_idcs, 0, StateIndex.STATE_SE2] = state_array
+        state_array = self._state.proposal_manager[dummy_proposal_idx].path.interpolate(np.array(ego_progress))
+        self._state.state_array[lateral_batch_idcs, 0, StateIndex.STATE_SE2] = state_array
 
     def _update_states_se2(self, lateral_batch_idcs: List[int], time_idx: int) -> None:
         """
@@ -208,13 +228,13 @@ class PDMGenerator:
         :param lateral_batch_idcs: list of proposal indices, sharing a path.
         :param time_idx: index of unrolling iteration (for proposal/trajectory samples)
         """
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
         assert time_idx > 0, "PDMGenerator: call _initialize_states first!"
         dummy_proposal_idx = lateral_batch_idcs[0]
-        current_progress = self._state_idm_array[lateral_batch_idcs, time_idx, StateIDMIndex.PROGRESS]
-        states_se2_array: npt.NDArray[np.float64] = self._proposal_manager[dummy_proposal_idx].path.interpolate(
-            current_progress, as_array=True
-        )
-        self._state_array[lateral_batch_idcs, time_idx, StateIndex.STATE_SE2] = states_se2_array
+        current_progress = self._state.state_idm_array[lateral_batch_idcs, time_idx, StateIDMIndex.PROGRESS]
+        states_se2_array = self._state.proposal_manager[dummy_proposal_idx].path.interpolate(current_progress)
+        assert isinstance(states_se2_array, np.ndarray), "PDMGenerator: interpolation must return array representation!"
+        self._state.state_array[lateral_batch_idcs, time_idx, StateIndex.STATE_SE2] = states_se2_array
 
     def _update_idm_states(self, lateral_batch_idcs: List[int], time_idx: int) -> None:
         """
@@ -222,17 +242,18 @@ class PDMGenerator:
         :param lateral_batch_idcs: list of proposal indices, sharing a path.
         :param time_idx: index of unrolling iteration (for proposal/trajectory samples)
         """
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
         assert time_idx > 0, "PDMGenerator: call _initialize_states first!"
         longitudinal_idcs = [
-            self._proposal_manager[proposal_idx].longitudinal_idx for proposal_idx in lateral_batch_idcs
+            self._state.proposal_manager[proposal_idx].longitudinal_idx for proposal_idx in lateral_batch_idcs
         ]
-        next_idm_states = self._proposal_manager.longitudinal_policies.propagate(
-            self._state_idm_array[lateral_batch_idcs, time_idx - 1],
-            self._leading_agent_array[lateral_batch_idcs, time_idx],
+        next_idm_states = self._state.proposal_manager.longitudinal_policies.propagate(
+            self._state.state_idm_array[lateral_batch_idcs, time_idx - 1],
+            self._state.leading_agent_array[lateral_batch_idcs, time_idx],
             longitudinal_idcs,
             self._sample_interval,
         )
-        self._state_idm_array[lateral_batch_idcs, time_idx] = next_idm_states
+        self._state.state_idm_array[lateral_batch_idcs, time_idx] = next_idm_states
 
     def _update_leading_agents(self, lateral_batch_idcs: List[int], time_idx: int) -> None:
         """
@@ -242,12 +263,13 @@ class PDMGenerator:
         :param time_idx: index of unrolling iteration (for proposal/trajectory samples)
         """
         assert time_idx > 0, "PDMGenerator: call _initialize_states first!"
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
 
         # update leading agent state at first call or at update rate (runtime)
         update_leading_agent: bool = (time_idx % self._leading_agent_update) == 0
 
         if not update_leading_agent:
-            self._leading_agent_array[lateral_batch_idcs, time_idx] = self._leading_agent_array[
+            self._state.leading_agent_array[lateral_batch_idcs, time_idx] = self._state.leading_agent_array[
                 lateral_batch_idcs, time_idx - 1
             ]
 
@@ -260,15 +282,15 @@ class PDMGenerator:
             # collect all leading vehicles ones for all proposals (run-time)
             object_progress_dict: Dict[str, float] = {}
             for object in intersecting_objects:
-                if object not in self._observation.collided_track_ids:
-                    object_progress = self._proposal_manager[dummy_proposal_idx].linestring.project(
-                        self._observation[time_idx][object].centroid
+                if object not in self._state.observation.collided_track_ids:
+                    object_progress = self._state.proposal_manager[dummy_proposal_idx].linestring.project(
+                        self._state.observation[time_idx][object].centroid
                     )
                     object_progress_dict[object] = object_progress
 
             # select leading agent for each proposal individually
             for proposal_idx in lateral_batch_idcs:
-                current_ego_progress = self._state_idm_array[proposal_idx, time_idx - 1, StateIDMIndex.PROGRESS]
+                current_ego_progress = self._state.state_idm_array[proposal_idx, time_idx - 1, StateIDMIndex.PROGRESS]
 
                 # filter all objects ahead
                 agents_ahead: Dict[str, float] = {
@@ -278,13 +300,20 @@ class PDMGenerator:
                 }
 
                 if len(agents_ahead) > 0:  # red light, object or agent ahead
-                    current_state_se2 = StateSE2(*self._state_array[proposal_idx, time_idx - 1, StateIndex.STATE_SE2])
-                    ego_polygon: Polygon = CarFootprint.build_from_rear_axle(
-                        current_state_se2, self._vehicle_parameters
-                    ).oriented_box.geometry
+                    current_state_se2 = PoseSE2.from_array(
+                        self._state.state_array[proposal_idx, time_idx - 1, StateIndex.STATE_SE2]
+                    )
+                    imu_se2 = rear_axle_se2_to_imu_se2(current_state_se2, self._state.ego_metadata)
+                    center_se2 = imu_se2_to_center_se2(imu_se2, self._state.ego_metadata)
+
+                    ego_polygon = BoundingBoxSE2(
+                        center_se2=center_se2,
+                        length=self._state.ego_metadata.length,
+                        width=self._state.ego_metadata.width,
+                    ).shapely_polygon
 
                     relative_distances = [
-                        ego_polygon.distance(self._observation[time_idx][agent]) for agent in agents_ahead.keys()
+                        ego_polygon.distance(self._state.observation[time_idx][agent]) for agent in agents_ahead.keys()
                     ]
 
                     argmin = np.argmin(relative_distances)
@@ -295,40 +324,39 @@ class PDMGenerator:
                     leading_agent_array[LeadingAgentIndex.PROGRESS] = relative_distance
 
                     # calculate projected velocity if not red light
-                    if self._observation.red_light_token not in nearest_agent:
+                    if self._state.observation.red_light_token not in nearest_agent:
                         leading_agent_array[LeadingAgentIndex.VELOCITY] = self._get_leading_agent_velocity(
-                            current_state_se2.heading,
-                            self._observation.unique_objects[nearest_agent],
+                            ego_yaw=current_state_se2.yaw,
+                            agent=self._state.observation.unique_objects[nearest_agent],
                         )
 
                 else:  # nothing ahead, free driving
-                    path_length = self._proposal_manager[proposal_idx].linestring.length
-                    path_rear = self._vehicle_parameters.length / 2
+                    path_length = self._state.proposal_manager[proposal_idx].linestring.length
+                    path_rear = self._state.initial_ego_state_se2.metadata.length / 2
 
                     leading_agent_array[LeadingAgentIndex.PROGRESS] = path_length
                     leading_agent_array[LeadingAgentIndex.LENGTH_REAR] = path_rear
 
-                self._leading_agent_array[proposal_idx, time_idx] = leading_agent_array
+                self._state.leading_agent_array[proposal_idx, time_idx] = leading_agent_array
 
     @staticmethod
-    def _get_leading_agent_velocity(ego_heading: float, agent: SceneObject) -> float:
+    def _get_leading_agent_velocity(ego_yaw: float, agent: BoxDetectionSE2) -> float:
         """
         Calculates velocity of leading vehicle projected to ego's heading.
-        :param ego_heading: heading angle [rad]
+        :param ego_yaw: heading angle [rad]
         :param agent: SceneObject class
         :return: projected velocity [m/s]
         """
-
-        if isinstance(agent, Agent):  # dynamic object
-            relative_heading = normalize_angle(agent.center.heading - ego_heading)
-            projected_velocity = transform(
-                StateSE2(agent.velocity.magnitude(), 0, 0),
-                StateSE2(0, 0, relative_heading).as_matrix(),
-            ).x
+        if (
+            isinstance(agent, BoxDetectionSE2) and agent.attributes.default_label in DYNAMIC_OBJECT_LABELS
+        ):  # dynamic object
+            relative_heading = normalize_angle(agent.center_se2.yaw - ego_yaw)
+            agent_global_velocity = agent.velocity_2d
+            assert agent_global_velocity is not None, "PDMGenerator: dynamic object has no velocity information!"
+            projected_velocity = agent_global_velocity.magnitude * np.cos(relative_heading)
         else:  # static object
             projected_velocity = 0.0
-
-        return projected_velocity
+        return float(projected_velocity)
 
     def _get_intersecting_objects(self, lateral_batch_idcs: List[int], time_idx: int) -> List[str]:
         """
@@ -337,9 +365,10 @@ class PDMGenerator:
         :param time_idx: index indicating the path of proposals
         :return: list of object tokens
         """
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
         dummy_proposal_idx = lateral_batch_idcs[0]
         driving_corridor: Polygon = self._get_driving_corridor(dummy_proposal_idx)
-        return self._observation[time_idx].intersects(driving_corridor)
+        return self._state.observation[time_idx].intersects(driving_corridor)
 
     def _get_driving_corridor(self, proposal_idx: int) -> Polygon:
         """
@@ -347,32 +376,37 @@ class PDMGenerator:
         :param proposal_idx: index of a proposal
         :return: linestring of max trajectory distance and ego's width
         """
-        lateral_idx = self._proposal_manager[proposal_idx].lateral_idx
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
+        lateral_idx = self._state.proposal_manager[proposal_idx].lateral_idx
 
-        if lateral_idx not in self._driving_corridor_cache.keys():
-            ego_distance = self._state_idm_array[proposal_idx, 0, StateIDMIndex.PROGRESS]
+        if lateral_idx not in self._state.driving_corridor_cache.keys():
+            ego_distance = self._state.state_idm_array[proposal_idx, 0, StateIDMIndex.PROGRESS]
             trajectory_distance = (
                 ego_distance
-                + abs(self._proposal_manager.max_target_velocity)
+                + abs(self._state.proposal_manager.max_target_velocity)
                 * self._trajectory_sampling.num_poses
                 * self._sample_interval
             )
-            linestring_ahead = self._proposal_manager[proposal_idx].path.substring(ego_distance, trajectory_distance)
-            expanded_path = linestring_ahead.buffer(self._vehicle_parameters.width / 2, cap_style=CAP_STYLE.square)
+            linestring_ahead = self._state.proposal_manager[proposal_idx].path.subline(
+                ego_distance, trajectory_distance
+            )
+            expanded_path = linestring_ahead.linestring.buffer(
+                self._state.ego_metadata.width / 2, cap_style=CAP_STYLE.square
+            )
+            self._state.driving_corridor_cache[lateral_idx] = expanded_path
 
-            self._driving_corridor_cache[lateral_idx] = expanded_path
-
-        return self._driving_corridor_cache[lateral_idx]
+        return self._state.driving_corridor_cache[lateral_idx]
 
     def _get_lateral_batch_dict(self) -> Dict[int, List[int]]:
         """
         Creates a dictionary for lateral paths and their proposal indices.
         :return: dictionary of lateral and proposal indices
         """
+        assert self._state is not None, "PDMGenerator: call _init_state first!"
         lateral_batch_dict: Dict[int, List[int]] = {}
 
-        for proposal_idx in range(len(self._proposal_manager)):
-            lateral_idx = self._proposal_manager[proposal_idx].lateral_idx
+        for proposal_idx in range(len(self._state.proposal_manager)):
+            lateral_idx = self._state.proposal_manager[proposal_idx].lateral_idx
 
             if lateral_idx not in lateral_batch_dict.keys():
                 lateral_batch_dict[lateral_idx] = [proposal_idx]

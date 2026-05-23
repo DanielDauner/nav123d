@@ -1,13 +1,9 @@
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.state_representation import TimeDuration, TimePoint
-from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
+from py123d.datatypes import EgoStateSE2, Timestamp
 
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.pdm.simulation.batch_kinematic_bicycle import (
-    BatchKinematicBicycleModel,
-)
+from nav123d.pdm.simulation.batch_kinematic_bicycle import BatchKinematicBicycleModel
 from nav123d.pdm.simulation.batch_lqr import BatchLQRTracker
 from nav123d.pdm.utils.pdm_array_representation import ego_state_to_state_array
 
@@ -31,7 +27,7 @@ class PDMSimulator:
         self._tracker = BatchLQRTracker()
 
     def simulate_proposals(
-        self, states: npt.NDArray[np.float64], initial_ego_state: EgoState
+        self, states: npt.NDArray[np.float64], initial_ego_state: EgoStateSE2
     ) -> npt.NDArray[np.float64]:
         """
         Simulate all proposals over batch-dim
@@ -40,41 +36,44 @@ class PDMSimulator:
         :return: simulated proposal states as array
         """
 
-        # TODO: find cleaner way to load parameters
-        # set parameters of motion model and tracker
-        self._motion_model._vehicle = initial_ego_state.car_footprint.vehicle_parameters
-        self._tracker._discretization_time = self.proposal_sampling.interval_length
-
         proposal_states = states[:, : self.proposal_sampling.num_poses + 1]
-        self._tracker.update(proposal_states)
+        discretization_time = self.proposal_sampling.interval_length
+        velocity_profile, curvature_profile = self._tracker.compute_reference_profiles(
+            proposal_states=proposal_states,
+            discretization_time=discretization_time,
+        )
 
         # state array representation for simulated vehicle states
         simulated_states = np.zeros(proposal_states.shape, dtype=np.float64)
         simulated_states[:, 0] = ego_state_to_state_array(initial_ego_state)
+        simulated_timestamps = np.zeros((self.proposal_sampling.num_poses + 1,), dtype=np.int64)
+        simulated_timestamps[0] = initial_ego_state.timestamp.time_us
 
-        # timing objects
-        current_time_point = initial_ego_state.time_point
-        delta_time_point = TimeDuration.from_s(self.proposal_sampling.interval_length)
-
-        current_iteration = SimulationIteration(current_time_point, 0)
-        next_iteration = SimulationIteration(current_time_point + delta_time_point, 1)
+        current_time_point = Timestamp.from_us(initial_ego_state.timestamp.time_us)
+        delta_time_point = int(self.proposal_sampling.interval_length * 1e6)  # convert from s to us
+        sampling_time: Timestamp = Timestamp.from_us(delta_time_point)
 
         for time_idx in range(1, self.proposal_sampling.num_poses + 1):
-            sampling_time: TimePoint = next_iteration.time_point - current_iteration.time_point
-
+            # 1. Track the trajectory with controller to get commands (steering rate and acceleration)
             command_states = self._tracker.track_trajectory(
-                current_iteration,
-                next_iteration,
-                simulated_states[:, time_idx - 1],
+                time_idx=time_idx,
+                initial_states=simulated_states[:, time_idx - 1],
+                proposal_states=proposal_states,
+                velocity_profile=velocity_profile,
+                curvature_profile=curvature_profile,
+                discretization_time=discretization_time,
+                ego_wheel_base=initial_ego_state.metadata.wheel_base,
             )
 
+            # 2. Propagate the state with the motion model and commands
             simulated_states[:, time_idx] = self._motion_model.propagate_state(
                 states=simulated_states[:, time_idx - 1],
                 command_states=command_states,
-                sampling_time=sampling_time,
+                sampling_time=sampling_time,  # convert from us to s
+                ego_metadata=initial_ego_state.metadata,
             )
 
-            current_iteration = next_iteration
-            next_iteration = SimulationIteration(current_iteration.time_point + delta_time_point, 1 + time_idx)
+            simulated_timestamps[time_idx] = current_time_point.time_us
+            current_time_point = Timestamp.from_us(current_time_point.time_us + delta_time_point)
 
         return simulated_states

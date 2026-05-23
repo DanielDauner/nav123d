@@ -3,13 +3,13 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-# from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.planning.simulation.trajectory.abstract_trajectory import AbstractTrajectory
+import numpy as np
+import pandas as pd
 from py123d.api import MapAPI
 from py123d.datatypes import BoxDetectionsSE2, EgoStateSE2, Lane, LaneGroup, TrafficLightDetections
 from py123d.geometry import OccupancyMap2D, PolylineSE2
 
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.pdm.observation.pdm_observation import PDMObservation
 from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 from nav123d.pdm.proposal.pdm_generator import PDMGenerator
@@ -36,9 +36,6 @@ class PDMClosedInput:
 
 class PDMClosedPlanner:
     """PDM-Closed planner."""
-
-    # Inherited property, see superclass.
-    requires_scenario: bool = False
 
     def __init__(
         self,
@@ -96,7 +93,7 @@ class PDMClosedPlanner:
         """Inherited, see superclass."""
         return self.__class__.__name__
 
-    def compute_planner_trajectory(self, current_input: PDMClosedInput) -> AbstractTrajectory:
+    def compute_planner_trajectory(self, current_input: PDMClosedInput) -> TrajectorySE2:
         """Inherited, see superclass."""
         gc.disable()
 
@@ -142,26 +139,28 @@ class PDMClosedPlanner:
         self._update_proposal_manager(ego_state_se2)
 
         # 3. Generate/Unroll proposals
-        # proposals_array = self._generator.generate_proposals(ego_state_se2, self._observation, self._proposal_manager)
+        assert self._proposal_manager is not None, "Proposal manager not initialized."
+        proposals_array = self._generator.generate_proposals(ego_state_se2, self._observation, self._proposal_manager)
 
         # # 4. Simulate proposals
-        # simulated_proposals_array = self._simulator.simulate_proposals(proposals_array, ego_state)
+        simulated_proposals_array = self._simulator.simulate_proposals(proposals_array, ego_state_se2)
 
         # # 5. Score proposals
-        # pdm_results = self._scorer.score_proposals(
-        #     simulated_proposals_array,
-        #     self._observation,
-        #     self._centerline,
-        #     list(self._route_lane_dict.keys()),
-        #     self._drivable_area_map,
-        # )
-        # proposal_scores = np.array(pd.concat(pdm_results)["pdm_score"])
+        assert self._centerline is not None and self._drivable_area_map is not None, "Planner not initialized properly."
+        pdm_results = self._scorer.score_proposals(
+            states=simulated_proposals_array,
+            observation=self._observation,
+            centerline=self._centerline,
+            route_lane_ids=list(self._route_lane_dict.keys()),
+            drivable_area_map=self._drivable_area_map,
+            ego_metadata=ego_state_se2.metadata,
+        )
+        proposal_scores = np.array(pd.concat(pdm_results)["pdm_score"])
 
-        # trajectory = self._generator.generate_trajectory(np.argmax(proposal_scores))
+        trajectory = self._generator.generate_trajectory(np.argmax(proposal_scores))  # type: ignore
 
-        # self._iteration += 1
-        # return trajectory
-        pass
+        self._iteration += 1
+        return trajectory
 
     def _update_proposal_manager(self, ego_state_se2: EgoStateSE2) -> None:
         """
@@ -192,6 +191,7 @@ class PDMClosedPlanner:
             )
 
         # update proposals
+        assert self._proposal_manager is not None, "Proposal manager not initialized."
         self._proposal_manager.update(current_lane.speed_limit_mps)
 
 

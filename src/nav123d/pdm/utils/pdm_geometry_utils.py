@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 from nuplan.common.actor_state.state_representation import StateSE2
+from py123d.geometry import PoseSE2
 
 from nav123d.pdm.utils.pdm_enums import PointIndex, SE2Index
 
@@ -43,10 +44,10 @@ def translate_lon_and_lat(
     return centers + translation
 
 
-def calculate_progress(path: List[StateSE2]) -> List[float]:
+def calculate_progress(path: List[PoseSE2]) -> List[float]:
     """
     Calculate the cumulative progress of a given path.
-    :param path: a path consisting of StateSE2 as waypoints
+    :param path: a path consisting of PoseSE2 as waypoints
     :return: a cumulative list of progress
     """
     x_position = [point.x for point in path]
@@ -98,7 +99,7 @@ def convert_absolute_to_relative_point_array(
     R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
     points_rel = point_array - origin_array[..., :2]
-    points_rel[..., :2] = points_rel[..., :2] @ R.T
+    points_rel[..., :2] @= R.T
 
     return points_rel
 

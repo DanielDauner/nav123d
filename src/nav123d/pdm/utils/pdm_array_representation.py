@@ -4,14 +4,13 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import shapely
-from nuplan.common.actor_state.ego_state import EgoState
-from nuplan.common.actor_state.state_representation import StateSE2, StateVector2D, TimePoint
-from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
+from py123d.datatypes import EgoStateSE2, EgoStateSE3Metadata, Timestamp
+from py123d.datatypes.vehicle_state.dynamic_state import DynamicStateSE2, DynamicStateSE2Index
+from py123d.geometry import PoseSE2, PoseSE2Index
 
 from nav123d.pdm.utils.pdm_enums import (
     BBCoordsIndex,
     PointIndex,
-    SE2Index,
     StateIndex,
 )
 from nav123d.pdm.utils.pdm_geometry_utils import (
@@ -22,186 +21,146 @@ from nav123d.pdm.utils.pdm_geometry_utils import (
 )
 
 
-def array_to_state_se2(array: npt.NDArray[np.float64]) -> StateSE2:
-    """
-    Converts array representation to single StateSE2.
-    :param array: array filled with (x,y,θ)
-    :return: StateSE2 class
-    """
-    return StateSE2(array[0], array[1], array[2])
-
-
-# use numpy vectorize function to apply on last dim
-array_to_state_se2_vectorize = np.vectorize(array_to_state_se2, signature="(n)->()")
-
-
 def array_to_states_se2(array: npt.NDArray[np.float64]) -> npt.NDArray[np.object_]:
     """
-    Converts array representation to StateSE2 over last dim.
+    Converts array representation to PoseSE2 over the last dim.
     :param array: array filled with (x,y,θ) on last dim
-    :return: array of StateSE2 class
+    :return: object array of PoseSE2, with shape array.shape[:-1]
     """
-    assert array.shape[-1] == len(SE2Index)
-    return array_to_state_se2_vectorize(array)
+    assert array.shape[-1] == len(PoseSE2Index), "Last dimension of input array must be of size 3 (x,y,yaw)"
+    leading_shape = array.shape[:-1]
+    flat = array.reshape(-1, len(PoseSE2Index))
+    poses = np.empty(flat.shape[0], dtype=object)
+    for i in range(flat.shape[0]):
+        poses[i] = PoseSE2.from_array(flat[i])
+    return poses.reshape(leading_shape)
 
 
-def state_se2_to_array(state_se2: StateSE2) -> npt.NDArray[np.float64]:
+def states_se2_to_array(states_se2: List[PoseSE2]) -> npt.NDArray[np.float64]:
     """
-    Converts StateSE2 to array representation.
-    :param state_se2: class containing (x,y,θ)
-    :return: array containing (x,y,θ)
+    Converts list of PoseSE2 to array representation.
+    :param states_se2: list of PoseSE2 objects
+    :return: array of shape (N, 3) with (x,y,yaw) on last dim
     """
-    array = np.zeros(len(SE2Index), dtype=np.float64)
-    array[SE2Index.X] = state_se2.x
-    array[SE2Index.Y] = state_se2.y
-    array[SE2Index.HEADING] = state_se2.heading
-    return array
+    return np.stack([pose.array for pose in states_se2])
 
 
-def states_se2_to_array(states_se2: List[StateSE2]) -> npt.NDArray[np.float64]:
+def ego_state_to_state_array(ego_state: EgoStateSE2) -> npt.NDArray[np.float64]:
     """
-    Converts list of StateSE2 object to array representation
-    :param states_se2: list of StateSE2 object's
-    :return: array representation of states
+    Converts an EgoStateSE2 into an array representation (drops timestamp and metadata).
+    The returned array follows StateIndex layout; STEERING_RATE and ANGULAR_ACCELERATION
+    are not represented in py123d's EgoStateSE2 and stay zero.
+    :param ego_state: EgoStateSE2 instance
+    :return: array filled with ego state values (from the rear axle)
     """
-    state_se2_array = np.zeros((len(states_se2), len(SE2Index)), dtype=np.float64)
-    for i, state_se2 in enumerate(states_se2):
-        state_se2_array[i] = state_se2_to_array(state_se2)
-    return state_se2_array
+    state_array = np.zeros(len(StateIndex), dtype=np.float64)
 
+    state_array[StateIndex.STATE_SE2] = ego_state.rear_axle_se2.array
 
-def ego_state_to_state_array(ego_state: EgoState) -> npt.NDArray[np.float64]:
-    """
-    Converts an ego state into an array representation (drops time-stamps and vehicle parameters)
-    :param ego_state: ego state class
-    :return: array containing ego state values (from the rear axle)
-    """
-    state_array = np.zeros(StateIndex.size(), dtype=np.float64)
+    if ego_state.dynamic_state_se2 is not None:
+        state_array[StateIndex.VELOCITY_2D] = ego_state.dynamic_state_se2.velocity_2d.array
+        state_array[StateIndex.ACCELERATION_2D] = ego_state.dynamic_state_se2.acceleration_2d.array
+        state_array[StateIndex.ANGULAR_VELOCITY] = ego_state.dynamic_state_se2.angular_velocity
 
-    state_array[StateIndex.STATE_SE2] = ego_state.rear_axle.serialize()
-    state_array[StateIndex.VELOCITY_2D] = ego_state.dynamic_car_state.rear_axle_velocity_2d.array
-    state_array[StateIndex.ACCELERATION_2D] = ego_state.dynamic_car_state.rear_axle_acceleration_2d.array
-
-    state_array[StateIndex.STEERING_ANGLE] = ego_state.tire_steering_angle
-    state_array[StateIndex.STEERING_RATE] = ego_state.dynamic_car_state.tire_steering_rate
-
-    state_array[StateIndex.ANGULAR_VELOCITY] = ego_state.dynamic_car_state.angular_velocity
-    state_array[StateIndex.ANGULAR_ACCELERATION] = ego_state.dynamic_car_state.angular_acceleration
+    if ego_state.tire_steering_angle is not None:
+        state_array[StateIndex.STEERING_ANGLE] = ego_state.tire_steering_angle
 
     return state_array
 
 
-def ego_state_to_center_state_array(ego_state: EgoState) -> npt.NDArray[np.float64]:
+def ego_state_to_center_state_array(ego_state: EgoStateSE2) -> npt.NDArray[np.float64]:
     """
-    Converts an ego state into an array representation (drops time-stamps and vehicle parameters)
-    :param ego_state: ego state class
-    :return: array containing ego state values (from the center)
+    Converts an EgoStateSE2 into an array representation referenced from the vehicle center.
+    Velocity/acceleration are body-frame on DynamicStateSE2 and therefore identical to the
+    rear-axle representation; only the SE2 pose differs.
+    :param ego_state: EgoStateSE2 instance
+    :return: array filled with ego state values (from the center)
     """
-    state_array = np.zeros(StateIndex.size(), dtype=np.float64)
-
-    state_array[StateIndex.STATE_SE2] = ego_state.center.serialize()
-    state_array[StateIndex.VELOCITY_2D] = ego_state.dynamic_car_state.center_velocity_2d.array
-    state_array[StateIndex.ACCELERATION_2D] = ego_state.dynamic_car_state.center_acceleration_2d.array
-
-    state_array[StateIndex.STEERING_ANGLE] = ego_state.tire_steering_angle
-    state_array[StateIndex.STEERING_RATE] = ego_state.dynamic_car_state.tire_steering_rate
-
-    state_array[StateIndex.ANGULAR_VELOCITY] = ego_state.dynamic_car_state.angular_velocity
-    state_array[StateIndex.ANGULAR_ACCELERATION] = ego_state.dynamic_car_state.angular_acceleration
-
+    state_array = ego_state_to_state_array(ego_state)
+    state_array[StateIndex.STATE_SE2] = ego_state.center_se2.array
     return state_array
 
 
-def ego_states_to_state_array(ego_states: List[EgoState]) -> npt.NDArray[np.float64]:
+def ego_states_to_state_array(ego_states: List[EgoStateSE2]) -> npt.NDArray[np.float64]:
     """
-    Converts a list of ego states into an array representation (drops time-stamps and vehicle parameters)
-    :param ego_state: ego state class
-    :return: array containing ego state values (from the rear axle)
+    Converts a list of EgoStateSE2 into an array representation (rear-axle reference).
+    :param ego_states: list of EgoStateSE2 instances
+    :return: 2D array of shape (N, len(StateIndex))
     """
-    state_array = np.array(
-        [ego_state_to_state_array(ego_state) for ego_state in ego_states],
-        dtype=np.float64,
-    )
-    return state_array
+    return np.array([ego_state_to_state_array(ego_state) for ego_state in ego_states], dtype=np.float64)
 
 
-def ego_states_to_center_state_array(
-    ego_states: List[EgoState],
-) -> npt.NDArray[np.float64]:
+def ego_states_to_center_state_array(ego_states: List[EgoStateSE2]) -> npt.NDArray[np.float64]:
     """
-    Converts a list of ego states into an center array representation (drops time-stamps and vehicle parameters)
-    :param ego_state: ego state class
-    :return: array containing ego state values (from the center)
+    Converts a list of EgoStateSE2 into an array representation (center reference).
+    :param ego_states: list of EgoStateSE2 instances
+    :return: 2D array of shape (N, len(StateIndex))
     """
-    state_array = np.array(
-        [ego_state_to_center_state_array(ego_state) for ego_state in ego_states],
-        dtype=np.float64,
-    )
-    return state_array
+    return np.array([ego_state_to_center_state_array(ego_state) for ego_state in ego_states], dtype=np.float64)
 
 
 def state_array_to_ego_state(
     state_array: npt.NDArray[np.float64],
-    time_point: TimePoint,
-    vehicle_parameters: VehicleParameters,
-) -> EgoState:
+    timestamp: Timestamp,
+    metadata: EgoStateSE3Metadata,
+) -> EgoStateSE2:
     """
-    Converts array representation of ego state back to ego state class.
-    :param state_array: array representation of ego states
-    :param time_point: time point of state
-    :param vehicle_parameters: vehicle parameter of ego
-    :return: nuPlan's EgoState object
+    Converts array representation of an ego state back to an EgoStateSE2.
+    Note: STEERING_RATE and ANGULAR_ACCELERATION cannot be carried into EgoStateSE2
+    and are silently dropped (py123d's DynamicStateSE2 has no field for them).
+    :param state_array: array representation of an ego state
+    :param timestamp: timestamp of state
+    :param metadata: vehicle metadata
+    :return: EgoStateSE2 instance built from the rear-axle pose
     """
-    return EgoState.build_from_rear_axle(
-        rear_axle_pose=StateSE2(*state_array[StateIndex.STATE_SE2]),
-        rear_axle_velocity_2d=StateVector2D(*state_array[StateIndex.VELOCITY_2D]),
-        rear_axle_acceleration_2d=StateVector2D(*state_array[StateIndex.ACCELERATION_2D]),
-        tire_steering_angle=state_array[StateIndex.STEERING_ANGLE],
-        time_point=time_point,
-        vehicle_parameters=vehicle_parameters,
-        is_in_auto_mode=True,
-        angular_vel=state_array[StateIndex.ANGULAR_VELOCITY],
-        angular_accel=state_array[StateIndex.ANGULAR_ACCELERATION],
-        tire_steering_rate=state_array[StateIndex.STEERING_RATE],
+    dyn_array = np.zeros(len(DynamicStateSE2Index), dtype=np.float64)
+    dyn_array[DynamicStateSE2Index.VELOCITY_2D] = state_array[StateIndex.VELOCITY_2D]
+    dyn_array[DynamicStateSE2Index.ACCELERATION_2D] = state_array[StateIndex.ACCELERATION_2D]
+    dyn_array[DynamicStateSE2Index.ANGULAR_VELOCITY] = state_array[StateIndex.ANGULAR_VELOCITY]
+
+    return EgoStateSE2.from_rear_axle(
+        rear_axle_se2=PoseSE2.from_array(state_array[StateIndex.STATE_SE2]),
+        metadata=metadata,
+        timestamp=timestamp,
+        dynamic_state_se2=DynamicStateSE2.from_array(dyn_array, copy=False),
+        tire_steering_angle=float(state_array[StateIndex.STEERING_ANGLE]),
     )
 
 
 def state_array_to_ego_states(
     state_array: npt.NDArray[np.float64],
-    time_points: List[TimePoint],
-    vehicle_parameter: VehicleParameters,
-) -> List[EgoState]:
+    timestamps: List[Timestamp],
+    metadata: EgoStateSE3Metadata,
+) -> List[EgoStateSE2]:
     """
-    Converts array representation of ego states back to list of ego state class.
+    Converts array representation of ego states back to a list of EgoStateSE2.
     :param state_array: array representation of ego states
-    :param time_point: list of time point of state array
-    :param vehicle_parameters: vehicle parameter of ego
-    :return: list nuPlan's EgoState object
+    :param timestamps: list of timestamps, one per state
+    :param metadata: vehicle metadata
+    :return: list of EgoStateSE2 instances
     """
-    ego_states_list: List[EgoState] = []
-    for i, time_point in enumerate(time_points):
+    ego_states: List[EgoStateSE2] = []
+    for i, timestamp in enumerate(timestamps):
         state = state_array[i] if i < len(state_array) else state_array[-1]
-        ego_states_list.append(state_array_to_ego_state(state, time_point, vehicle_parameter))
-    return ego_states_list
+        ego_states.append(state_array_to_ego_state(state, timestamp, metadata))
+    return ego_states
 
 
 def state_array_to_coords_array(
     states: npt.NDArray[np.float64],
-    vehicle_parameters: VehicleParameters,
+    metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.float64]:
     """
-    Converts multi-dim array representation of ego states to bounding box coordinates
-    :param state_array: array representation of ego states
-    :param vehicle_parameters: vehicle parameter of ego
-    :return: multi-dim array bounding box coordinates
+    Converts multi-dim array representation of ego states to bounding box coordinates.
+    :param states: array representation of ego states (n_batch, n_time, len(StateIndex))
+    :param metadata: vehicle metadata
+    :return: multi-dim array of bounding box coordinates
     """
-    n_batch, n_time, n_states = states.shape
+    n_batch, n_time, _ = states.shape
 
-    half_length, half_width, rear_axle_to_center = (
-        vehicle_parameters.half_length,
-        vehicle_parameters.half_width,
-        vehicle_parameters.rear_axle_to_center,
-    )
+    half_length = metadata.half_length
+    half_width = metadata.half_width
+    rear_axle_to_center = metadata.rear_axle_to_center_longitudinal
 
     headings = states[..., StateIndex.HEADING]
     cos, sin = np.cos(headings), np.sin(headings)
@@ -214,7 +173,6 @@ def state_array_to_coords_array(
     coords_array: npt.NDArray[np.float64] = np.zeros((n_batch, n_time, len(BBCoordsIndex), 2), dtype=np.float64)
 
     coords_array[:, :, BBCoordsIndex.CENTER] = ego_centers
-
     coords_array[:, :, BBCoordsIndex.FRONT_LEFT] = translate_lon_and_lat(ego_centers, headings, half_length, half_width)
     coords_array[:, :, BBCoordsIndex.FRONT_RIGHT] = translate_lon_and_lat(
         ego_centers, headings, half_length, -half_width
@@ -231,9 +189,9 @@ def coords_array_to_polygon_array(
     coords: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.object_]:
     """
-    Converts multi-dim array of bounding box coords of to polygons
+    Converts multi-dim array of bounding box coords to shapely polygons.
     :param coords: bounding box coords (including corners and center)
-    :return: array of shapely's polygons
+    :return: array of shapely polygons
     """
     # create coords copy and use center point for closed exterior
     coords_exterior: npt.NDArray[np.float64] = coords.copy()
@@ -242,24 +200,30 @@ def coords_array_to_polygon_array(
     # load new coordinates into polygon array
     polygons = shapely.creation.polygons(coords_exterior)
 
-    return polygons
+    return polygons  # type: ignore
 
 
 def state_array_to_center_state_array(
-    state_array: npt.NDArray[np.float64], vehicle_parameters: VehicleParameters
+    state_array: npt.NDArray[np.float64], metadata: EgoStateSE3Metadata
 ) -> npt.NDArray[np.float64]:
-    assert state_array.shape[-1] == StateIndex.size()
+    """
+    Converts a rear-axle-referenced state array to a center-referenced one.
+    :param state_array: array representation of ego states (..., len(StateIndex))
+    :param metadata: vehicle metadata
+    :return: center-referenced state array, same shape as input
+    """
+    assert state_array.shape[-1] == len(StateIndex)
 
     center_states = np.zeros(state_array.shape, dtype=np.float64)
 
     # coordinates
     center_states[..., StateIndex.STATE_SE2] = se2_array_translate_longitudinally(
-        state_array[..., StateIndex.STATE_SE2], vehicle_parameters.rear_axle_to_center
+        state_array[..., StateIndex.STATE_SE2], metadata.rear_axle_to_center_longitudinal
     )
 
     # velocity & acceleration
     displacement = np.zeros((1, 2), dtype=np.float64)
-    displacement[..., PointIndex.X] = vehicle_parameters.rear_axle_to_center
+    displacement[..., PointIndex.X] = metadata.rear_axle_to_center_longitudinal
 
     center_states[..., StateIndex.VELOCITY_2D] = get_velocity_shifted(
         displacement,

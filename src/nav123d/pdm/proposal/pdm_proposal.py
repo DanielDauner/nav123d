@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from py123d.geometry import PolylineSE2
 from shapely.geometry import LineString
@@ -72,7 +72,7 @@ class PDMProposalManager:
         """
         return self._proposals[proposal_idx]
 
-    def update(self, speed_limit_mps: float) -> None:
+    def update(self, speed_limit_mps: Optional[float]) -> None:
         """
         Updates target velocities of IDM policies with current speed-limit.
         :param speed_limit_mps: current speed-limit [m/s]

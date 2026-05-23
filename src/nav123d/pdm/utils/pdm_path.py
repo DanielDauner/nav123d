@@ -7,7 +7,7 @@ from typing import Any, List, Tuple, Type, Union
 
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.state_representation import StateSE2
+from py123d.geometry import PoseSE2
 from scipy.interpolate import interp1d
 from shapely.creation import linestrings
 from shapely.geometry import LineString
@@ -24,10 +24,10 @@ from nav123d.pdm.utils.pdm_geometry_utils import calculate_progress, normalize_a
 class PDMPath:
     """Class representing a path to interpolate for PDM."""
 
-    def __init__(self, discrete_path: List[StateSE2]):
+    def __init__(self, discrete_path: List[PoseSE2]):
         """
         Constructor for PDMPath
-        :param discrete_path: list of (x,y,θ) values
+        :param discrete_path: list of PoseSE2 (x,y,yaw) values
         """
 
         # attribute
@@ -46,7 +46,7 @@ class PDMPath:
 
     @property
     def discrete_path(self):
-        """Getter for discrete StateSE2 objects of path."""
+        """Getter for discrete PoseSE2 objects of path."""
         return self._discrete_path
 
     @property
@@ -74,7 +74,7 @@ class PDMPath:
         Calculates (x,y,θ) for a given distance along the path.
         :param distances: list of array of distance values
         :param as_array: whether to return in array representation, defaults to False
-        :return: array of StateSE2 class or (x,y,θ) values
+        :return: array of PoseSE2 class or (x,y,yaw) values
         """
         clipped_distances = np.clip(distances, 1e-5, self.length)
         interpolated_se2_array = self._interpolator(clipped_distances)
