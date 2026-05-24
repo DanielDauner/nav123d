@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gc
 import logging
 from dataclasses import dataclass
@@ -5,10 +7,11 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from py123d.api import MapAPI
+from py123d.api import MapAPI, SceneAPI
 from py123d.datatypes import BoxDetectionsSE2, EgoStateSE2, Lane, LaneGroup, TrafficLightDetections
 from py123d.geometry import OccupancyMap2D, PolylineSE2
 
+from nav123d.api.agent_api import AgentAPI
 from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.pdm.observation.pdm_observation import PDMObservation
 from nav123d.pdm.proposal.batch_idm_policy import BatchIDMPolicy
@@ -32,6 +35,24 @@ class PDMClosedInput:
     ego_state_se2: EgoStateSE2
     box_detections_se2: BoxDetectionsSE2
     traffic_light_detections: TrafficLightDetections
+
+    @classmethod
+    def from_agent_api(cls, agent_api: AgentAPI) -> PDMClosedInput:
+        raise NotImplementedError
+
+    @classmethod
+    def from_scene_api(cls, scene_api: SceneAPI) -> PDMClosedInput:
+        ego_state_se3 = scene_api.get_ego_state_se3_at_iteration(0)
+        box_detections_se3 = scene_api.get_box_detections_se3_at_iteration(0)
+        traffic_light_detections = scene_api.get_traffic_light_detections_at_iteration(0)
+        assert ego_state_se3 is not None, "Ego state modality not found at iteration."
+        assert box_detections_se3 is not None, "Box detections modality not found at iteration."
+        assert traffic_light_detections is not None, "Traffic light detections modality not found at iteration."
+        return PDMClosedInput(
+            ego_state_se2=ego_state_se3.ego_state_se2,
+            box_detections_se2=box_detections_se3.box_detections_se2,
+            traffic_light_detections=traffic_light_detections,
+        )
 
 
 class PDMClosedPlanner:

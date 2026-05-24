@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+import warnings
+from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
 from py123d.geometry import PolylineSE2
+from py123d.geometry.geometry_index import PoseSE2Index
+from py123d.geometry.utils.rotation_utils import normalize_angle
+from scipy.interpolate import interp1d
 
 PROXIMITY_ABS_TOL = 1e-10
 
@@ -91,8 +95,7 @@ class TrajectorySE2:
     """Trajectory dataclass in NAVSIM."""
 
     pose_se2_array: npt.NDArray[np.float64]  # local coordinates
-    timestamps: npt.NDArray[np.int64]  # [s] time of each pose in trajectory, relative to trajectory start time
-    trajectory_sampling: TrajectorySampling = TrajectorySampling(time_horizon=4, interval_length=0.5)
+    timestamps: npt.NDArray[np.int64]  # absolute timestamps in microseconds
 
     def __init__(
         self,
@@ -100,26 +103,38 @@ class TrajectorySE2:
         timestamps: npt.NDArray[np.int64],
         # trajectory_sampling: Optional[TrajectorySampling] = None,
     ) -> None:
+        # Unwrap yaw so interpolation sweeps the short way across the ±π boundary.
+        pose_se2_array[:, PoseSE2Index.YAW] = np.unwrap(pose_se2_array[:, PoseSE2Index.YAW], axis=0)
         self.pose_se2_array = pose_se2_array
         self.timestamps = timestamps
-        # self.trajectory_sampling = trajectory_sampling
-
-    # @classmethod
-    # def from_arrays(
-    #     cls,
-    #     pose_se2_array: npt.NDArray[np.float64],
-    #     timestamps: npt.NDArray[np.int64],
-    #     copy: bool = True,
-    # ) -> TrajectorySE2:
-    #     pass
 
     @property
     def polyline_se2(self) -> PolylineSE2:
         return PolylineSE2.from_array(self.pose_se2_array)
 
-    # def __post_init__(self):
-    #     assert self.pose_se2_array.ndim == 2, "Trajectory poses should have two dimensions for samples and poses."
-    #     assert self.pose_se2_array.shape[0] == self.trajectory_sampling.num_poses, (
-    #         "Trajectory poses and sampling have unequal number of poses."
-    #     )
-    #     assert self.pose_se2_array.shape[1] == 3, "Trajectory requires (x, y, heading) at last dim."
+    def interpolate(
+        self,
+        timestamp: Union[int, np.int64, npt.NDArray[np.int64]],
+    ) -> npt.NDArray[np.float64]:
+        # Shift to zero-origin and convert µs -> s before float cast: raw unix-microsecond
+        # int64 values are ~1.7e15, eating ~16 of float64's significant digits and risking
+        # catastrophic cancellation inside interp1d's weight computation.
+        t_origin = self.timestamps[0]
+        t_min_i, t_max_i = self.timestamps[0], self.timestamps[-1]
+
+        query_i = np.asarray(timestamp, dtype=np.int64)
+        if np.any((query_i < t_min_i) | (query_i > t_max_i)):
+            warnings.warn(
+                f"TrajectorySE2.interpolate received timestamps outside "
+                f"[{int(t_min_i)}, {int(t_max_i)}]; clipping to range.",
+                stacklevel=2,
+            )
+        clipped_i = np.clip(query_i, t_min_i, t_max_i)
+
+        timestamps_s = (self.timestamps - t_origin).astype(np.float64) * 1e-6
+        query_s = (clipped_i - t_origin).astype(np.float64) * 1e-6
+
+        interpolator = interp1d(timestamps_s, self.pose_se2_array, axis=0, bounds_error=False, fill_value=0.0)
+        result = interpolator(query_s)
+        result[..., PoseSE2Index.YAW] = normalize_angle(result[..., PoseSE2Index.YAW])
+        return result

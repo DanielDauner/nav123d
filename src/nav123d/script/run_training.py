@@ -11,8 +11,8 @@ from torch.utils.data import DataLoader
 from nav123d.agents.abstract_agent import AbstractAgent
 from nav123d.common.dataclasses import SceneFilter
 from nav123d.common.dataloader import SceneLoader
-from nav123d.planning.training.agent_lightning_module import AgentLightningModule
-from nav123d.planning.training.dataset import CacheOnlyDataset, Dataset
+from nav123d.training.agent_lightning_module import AgentLightningModule
+from nav123d.training.dataset import CacheOnlyDataset, Dataset
 
 logger = logging.getLogger(__name__)
 

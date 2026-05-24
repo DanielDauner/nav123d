@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from nav123d.agents.abstract_agent import AbstractAgent
 from nav123d.common.dataclasses import AgentInput, Scene, SensorConfig
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
+from nav123d.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 
 class EgoStatusFeatureBuilder(AbstractFeatureBuilder):

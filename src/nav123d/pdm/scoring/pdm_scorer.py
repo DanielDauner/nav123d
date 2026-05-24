@@ -422,7 +422,7 @@ class PDMScorer:
                 continue
 
             for proposal_idx, geometry_idx in zip(intersecting[0], intersecting[1]):
-                token = self._state.observation[time_idx].tokens[geometry_idx]
+                token = self._state.observation[time_idx].ids[geometry_idx]
                 if (self._state.observation.red_light_token in token) or (
                     token in proposal_collided_track_ids[proposal_idx]
                 ):
@@ -600,7 +600,7 @@ class PDMScorer:
                 if len(intersecting) == 0:
                     continue
                 for proposal_idx, geometry_idx in zip(intersecting[0], intersecting[1]):
-                    token = self._state.observation[current_time_idx].tokens[geometry_idx]
+                    token = self._state.observation[current_time_idx].ids[geometry_idx]
                     if (
                         (self._state.observation.red_light_token in token)
                         or (token in temp_collided_track_ids[proposal_idx])
@@ -657,7 +657,7 @@ class PDMScorer:
                 if traffic_light_compliance_scores[proposal_idx] == 0.0:
                     continue
 
-                token = self._state.observation[time_idx].tokens[geometry_idx]
+                token = self._state.observation[time_idx].ids[geometry_idx]
 
                 # Check if the intersecting object is a red light
                 if token.startswith(self._state.observation.red_light_token):

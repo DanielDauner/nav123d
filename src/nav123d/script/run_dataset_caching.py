@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from nav123d.agents.abstract_agent import AbstractAgent
 from nav123d.common.dataclasses import SceneFilter, SensorConfig
 from nav123d.common.dataloader import SceneLoader
-from nav123d.planning.training.dataset import Dataset
+from nav123d.training.dataset import Dataset
 
 logger = logging.getLogger(__name__)
 

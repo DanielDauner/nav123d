@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 import torch
-from nav123d.planning.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 from nuplan.common.actor_state.oriented_box import OrientedBox
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.actor_state.tracked_objects_types import TrackedObjectType
@@ -19,6 +18,7 @@ from nav123d.common.dataclasses import AgentInput, Annotations, Scene
 from nav123d.common.enums import BoundingBoxIndex, LidarIndex
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.planning.scenario_builder.navsim_scenario_utils import tracked_object_types
+from nav123d.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 
 class TransfuserFeatureBuilder(AbstractFeatureBuilder):

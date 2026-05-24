@@ -16,7 +16,6 @@ from shapely.geometry import Polygon
 
 from nav123d.geometry.trajectory import TrajectorySampling
 from nav123d.pdm.observation.pdm_object_manager import PDMObjectManager
-from nav123d.pdm.observation.pdm_occupancy_map import PDMOccupancyMap
 
 
 class PDMObservation:
@@ -54,7 +53,7 @@ class PDMObservation:
         else:
             self._observation_samples: int = max(trajectory_sampling.num_poses, proposal_sampling.num_poses)  # type: ignore
 
-        self._map_radius: float = map_radius
+        self._map_radius: Optional[float] = map_radius
         self._observation_sample_res: int = observation_sample_res
 
         # useful things
@@ -65,11 +64,11 @@ class PDMObservation:
         self._red_light_token = "red_light"
 
         # lazy loaded (during update)
-        self._occupancy_maps: List[PDMOccupancyMap] = []
+        self._occupancy_maps: List[OccupancyMap2D] = []
         self._unique_objects: Optional[Dict[str, BoxDetectionSE2]] = None
         self._occupancy_maps_tl: Optional[List[Tuple[List[str], np.ndarray]]] = None
 
-    def __getitem__(self, time_idx) -> PDMOccupancyMap:
+    def __getitem__(self, time_idx) -> OccupancyMap2D:
         """
         Retrieves occupancy map for time_idx and adapt temporal resolution.
         :param time_idx: index for future simulation iterations [10Hz]
@@ -198,9 +197,9 @@ class PDMObservation:
                 axis=0,
             )
 
-            occupancy_map = PDMOccupancyMap(
-                static_object_tokens + dynamic_object_tokens + traffic_light_tokens,
-                all_polygons,
+            occupancy_map = OccupancyMap2D(
+                geometries=all_polygons,  # type: ignore
+                ids=static_object_tokens + dynamic_object_tokens + traffic_light_tokens,
             )
             self._occupancy_maps.append(occupancy_map)
 
@@ -210,7 +209,7 @@ class PDMObservation:
         new_collided_track_ids = []
 
         for intersecting_obstacle in intersecting_obstacles:
-            if self._red_light_token in intersecting_obstacle:
+            if str(self._red_light_token) in intersecting_obstacle:  # type: ignore
                 within = ego_polygon.within(self._occupancy_maps[0][intersecting_obstacle])
                 if not within:
                     continue
@@ -222,47 +221,23 @@ class PDMObservation:
         self._initialized = True
 
     def update_replay(self, scene_api: SceneAPI) -> None:
-        # detection_tracks = scenario.get_future_tracked_objects(
-        #     iteration_index, self._observation_samples * self._sample_interval
-        # )
-
-        # NOTE: @DanielDauner this onwards is where I stopped refactoring 2026-05-15
-
         occupancy_maps = []
         unique_objects = {}
 
-        for iteration in range(self._observation_samples + self._observation_sample_res):
-            box_detections_se3 = scene_api.get_box_detections_se3_at_iteration(iteration)
-
-            occupancy_dict = {}
-            unique_objects = {}
-            if box_detections_se3 is not None:
-                for box_detection_se3 in box_detections_se3:
-                    box_detection_se2 = box_detection_se3.box_detection_se2
-                    token = box_detection_se2.attributes.track_token
-                    polygon = box_detection_se2.shapely_polygon
-                    occupancy_dict[token] = polygon
-
-                    if token not in unique_objects.keys():
-                        unique_objects[token] = box_detection_se2
-
-            occupancy_maps.append(OccupancyMap2D.from_dict(occupancy_dict))
-
-        occupancy_maps = []
-        unique_objects = {}
-
-        # for detection_track in detection_tracks:
-        #     tokens, polygons = [], []
-        #     for tracked_object in detection_track.tracked_objects:
-        #         token, polygon = tracked_object.track_token, tracked_object.box.geometry
-        #         tokens.append(token)
-        #         polygons.append(polygon)
-
-        #         if token not in unique_objects.keys():
-        #             unique_objects[token] = tracked_object
-
-        #     occupancy_map = PDMOccupancyMap(tokens, polygons)
-        #     occupancy_maps.append(occupancy_map)
+        for iteration in range(self._observation_samples + 1):
+            _box_detections_se3 = scene_api.get_box_detections_se3_at_iteration(iteration)
+            assert _box_detections_se3 is not None, (
+                f"PDMObservation: Missing box detections at iteration {iteration} for replay update!"
+            )
+            _box_detections_se2 = _box_detections_se3.box_detections_se2
+            _occupancy_dict = {}
+            for box_detection_se2 in _box_detections_se2:
+                token = box_detection_se2.attributes.track_token
+                polygon = box_detection_se2.shapely_polygon
+                _occupancy_dict[token] = polygon
+                if token not in unique_objects.keys():
+                    unique_objects[token] = box_detection_se2
+            occupancy_maps.append(OccupancyMap2D.from_dict(_occupancy_dict))
 
         assert len(occupancy_maps) == self._observation_samples + 1, (
             f"Expected observation length {self._observation_samples + 1}, but got {len(occupancy_maps)}"
