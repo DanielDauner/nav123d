@@ -234,6 +234,9 @@ class PDMGenerator:
         current_progress = self._state.state_idm_array[lateral_batch_idcs, time_idx, StateIDMIndex.PROGRESS]
         states_se2_array = self._state.proposal_manager[dummy_proposal_idx].path.interpolate(current_progress)
         assert isinstance(states_se2_array, np.ndarray), "PDMGenerator: interpolation must return array representation!"
+        assert np.all(np.isfinite(states_se2_array)), (
+            f"PDMGenerator: interpolation returned NaN or infinite values for progress {current_progress}!"
+        )
         self._state.state_array[lateral_batch_idcs, time_idx, StateIndex.STATE_SE2] = states_se2_array
 
     def _update_idm_states(self, lateral_batch_idcs: List[int], time_idx: int) -> None:
@@ -252,6 +255,9 @@ class PDMGenerator:
             self._state.leading_agent_array[lateral_batch_idcs, time_idx],
             longitudinal_idcs,
             self._sample_interval,
+        )
+        assert np.all(np.isfinite(next_idm_states)), (
+            f"PDMGenerator: IDM propagation returned NaN or infinite values for time_idx {time_idx}!"
         )
         self._state.state_idm_array[lateral_batch_idcs, time_idx] = next_idm_states
 

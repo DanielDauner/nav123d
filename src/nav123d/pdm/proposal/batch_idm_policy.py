@@ -99,6 +99,10 @@ class BatchIDMPolicy:
         else:
             self._target_velocities = self._speed_limit_fractions * self._fallback_target_velocities
 
+        assert np.all(np.isfinite(self._target_velocities)), (
+            "BatchIDMPolicy: target velocities contain NaN or infinite values after update!"
+        )
+
     def propagate(
         self,
         previous_idm_states: npt.NDArray[np.float64],

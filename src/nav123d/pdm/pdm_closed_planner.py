@@ -183,6 +183,7 @@ class PDMClosedPlanner:
                 self._route_lane_group_dict,
                 self._route_lane_dict,
                 self._lateral_offsets,
+                ego_state_se2=ego_state_se2,
             )
             self._centerline = proposal_paths[0]
 

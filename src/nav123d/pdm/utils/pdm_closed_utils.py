@@ -167,29 +167,68 @@ def _get_discrete_centerline(
     current_lane: Lane,
     route_lane_group_dict: Dict[int, LaneGroup],
     route_lane_dict: Dict[int, Lane],
+    ego_state_se2: Optional[EgoStateSE2] = None,
     search_depth: int = 30,
+    max_centerline_start_offset: float = 200.0,
+    duplicate_pose_eps: float = 1e-3,
 ) -> PolylineSE2:
     """
     Applies a Dijkstra search on the lane-graph to retrieve discrete centerline.
     :param current_lane: lane object of starting lane.
     :param route_lane_group_dict: on-route lane group dictionary
     :param route_lane_dict: on-route lane dictionary
+    :param ego_state_se2: ego state used to sanity-check the centerline starts near ego
     :param search_depth: depth of search (for runtime), defaults to 30
+    :param max_centerline_start_offset: [m] max allowed gap between first centerline point and ego
+    :param duplicate_pose_eps: [m] consecutive poses closer than this are dropped (stitch boundaries / zero-length connectors)
     :return: list of discrete states on centerline (x,y,θ)
     """
     lane_groups = list(route_lane_group_dict.values())
     lane_group_ids = list(route_lane_group_dict.keys())
 
-    start_idx = np.argmax(np.array(lane_group_ids) == current_lane.lane_group_id)
+    assert current_lane.lane_group_id in lane_group_ids, (
+        f"Starting lane {current_lane.object_id} has lane_group_id {current_lane.lane_group_id} "
+        f"not in route lane groups {lane_group_ids}."
+    )
+    start_idx = int(np.argmax(np.array(lane_group_ids) == current_lane.lane_group_id))
     lane_group_window = lane_groups[start_idx : start_idx + search_depth]
+    assert len(lane_group_window) > 0, "Empty lane_group_window — start_idx is past route end."
 
     graph_search = Dijkstra(current_lane, list(route_lane_dict.keys()))
-    route_plan, _ = graph_search.search(lane_group_window[-1])
-    centerline_sublines: List[npt.NDArray] = []
-    for lane in route_plan:
-        centerline_sublines.append(lane.centerline.polyline_se2.array)
+    route_plan, path_found = graph_search.search(lane_group_window[-1])
 
+    centerline_sublines: List[npt.NDArray] = [lane.centerline.polyline_se2.array for lane in route_plan]
     stacked = np.vstack(centerline_sublines)
+
+    assert np.isfinite(stacked).all(), (
+        f"Non-finite values in stitched centerline (start_lane={current_lane.object_id}, "
+        f"route_plan_len={len(route_plan)}, path_found={path_found})."
+    )
+
+    # TODO: @DanielDauner: Refactor these checks and assertions.
+    # Drop consecutive near-duplicate poses. Lane-to-lane stitch boundaries always
+    # duplicate one point; zero-length lane connectors (common in Boston/Singapore
+    # intersections) produce additional duplicates that make shapely's project()
+    # return NaN and that feed singular rows into the LQR fit.
+    if stacked.shape[0] > 1:
+        gaps = np.linalg.norm(np.diff(stacked[:, :2], axis=0), axis=1)
+        keep = np.concatenate([[True], gaps > duplicate_pose_eps])
+        stacked = stacked[keep]
+
+    assert stacked.shape[0] >= 2, (
+        f"Centerline collapsed to {stacked.shape[0]} pose(s) after dedup "
+        f"(start_lane={current_lane.object_id}, route_plan_len={len(route_plan)})."
+    )
+
+    if ego_state_se2 is not None:
+        ego_xy = ego_state_se2.rear_axle_se2.array[:2]
+        start_offset = float(np.linalg.norm(stacked[0, :2] - ego_xy))
+        assert start_offset < max_centerline_start_offset, (
+            f"Centerline starts {start_offset:.1f}m from ego "
+            f"(start_lane={current_lane.object_id}, route_plan_len={len(route_plan)}, "
+            f"path_found={path_found}). Route correction or Dijkstra fallback likely picked a remote lane."
+        )
+
     return PolylineSE2.from_array(stacked)
 
 
@@ -198,6 +237,7 @@ def _get_proposal_paths(
     route_lane_group_dict: Dict[int, LaneGroup],
     route_lane_dict: Dict[int, Lane],
     lateral_offsets: Optional[List[float]],
+    ego_state_se2: Optional[EgoStateSE2] = None,
 ) -> List[PolylineSE2]:
     """
     Builds proposal paths: centerline at index 0, plus optional lateral offsets.
@@ -205,12 +245,14 @@ def _get_proposal_paths(
     :param route_lane_group_dict: on-route lane group dictionary
     :param route_lane_dict: on-route lane dictionary
     :param lateral_offsets: optional centerline offsets for proposals
+    :param ego_state_se2: ego state used to sanity-check the centerline starts near ego
     :return: list of paths (index 0 is centerline)
     """
     centerline_polyline_se2 = _get_discrete_centerline(
         current_lane,
         route_lane_group_dict,
         route_lane_dict,
+        ego_state_se2=ego_state_se2,
     )
     output_paths: List[PolylineSE2] = [centerline_polyline_se2]
     if lateral_offsets is not None:
