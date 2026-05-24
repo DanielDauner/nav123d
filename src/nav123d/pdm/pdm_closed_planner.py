@@ -176,6 +176,7 @@ class PDMClosedPlanner:
         create_new_proposals = self._iteration == 0
 
         if create_new_proposals:
+            print("Plan new route!")
             assert self._route_lane_group_dict is not None, "Planner not initialized properly."
             proposal_paths: List[PolylineSE2] = _get_proposal_paths(
                 current_lane,

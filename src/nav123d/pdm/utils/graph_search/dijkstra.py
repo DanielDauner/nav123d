@@ -16,7 +16,7 @@ class Dijkstra:
         :param start_lane: The starting lane for the search
         :param candidate_lane_ids: The candidate lane ids that can be included in the search.
         """
-        self._queue: List[Lane] = [start_lane]
+        self._queue: List[Lane] = list([start_lane])
         self._parent: Dict[int, Optional[Lane]] = dict()
         self._candidate_lane_ids = candidate_lane_ids
 

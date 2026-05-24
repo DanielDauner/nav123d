@@ -107,7 +107,8 @@ def _get_intersecting_lanes(
         assert isinstance(lane_token, str), f"Expected lane_id of type int, got {type(lane_token)}"
         map_layer, lane_id = lane_token.split("-")
         lane_id = int(lane_id)
-        if map_layer == "lane" and lane_id in route_lane_dict.keys():
+        map_layer = MapLayer.from_arbitrary(map_layer)
+        if map_layer == MapLayer.LANE and lane_id in route_lane_dict.keys():
             lane_object = route_lane_dict[lane_id]
             lane_centerline_se2: PolylineSE2 = lane_object.centerline.polyline_se2
             lane_centerline_se2_array = lane_centerline_se2.array
@@ -184,12 +185,12 @@ def _get_discrete_centerline(
 
     graph_search = Dijkstra(current_lane, list(route_lane_dict.keys()))
     route_plan, _ = graph_search.search(lane_group_window[-1])
-
     centerline_sublines: List[npt.NDArray] = []
     for lane in route_plan:
         centerline_sublines.append(lane.centerline.polyline_se2.array)
 
-    return PolylineSE2.from_array(np.vstack(centerline_sublines))
+    stacked = np.vstack(centerline_sublines)
+    return PolylineSE2.from_array(stacked)
 
 
 def _get_proposal_paths(
