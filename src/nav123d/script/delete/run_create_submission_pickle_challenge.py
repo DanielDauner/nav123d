@@ -10,7 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from nav123d.agents.abstract_agent import AbstractAgent
+from nav123d.agents.base_agent import AbstractAgent
 from nav123d.common.dataclasses import SceneFilter, Trajectory
 from nav123d.common.dataloader_private import SceneLoader
 

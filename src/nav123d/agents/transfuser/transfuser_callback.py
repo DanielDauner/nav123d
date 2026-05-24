@@ -6,7 +6,6 @@ import numpy.typing as npt
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from nav123d.visualization.config import AGENT_CONFIG, MAP_LAYER_CONFIG
 from nuplan.common.actor_state.oriented_box import OrientedBox
 from nuplan.common.actor_state.state_representation import StateSE2
 from nuplan.common.maps.abstract_map import SemanticMapLayer
@@ -14,11 +13,13 @@ from PIL import ImageColor
 
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
+from nav123d.visualization.config import AGENT_CONFIG, MAP_LAYER_CONFIG
 
 
 class TransfuserCallback(pl.Callback):
     """Visualization Callback for TransFuser during training."""
 
+    # FIXME:
     def __init__(
         self,
         config: TransfuserConfig,

@@ -2,12 +2,11 @@ from typing import Dict
 
 import numpy as np
 import torch
+from py123d.geometry import BoundingBoxSE2Index, PoseSE2Index
 from torch import nn
 
 from nav123d.agents.transfuser.transfuser_backbone import TransfuserBackbone
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
-from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
-from nav123d.common.enums import StateSE2Index
 from nav123d.geometry.trajectory import TrajectorySampling
 
 
@@ -94,7 +93,7 @@ class TransfuserModel(nn.Module):
         if self._config.latent:
             lidar_feature = None
         else:
-            lidar_feature: torch.Tensor = features["lidar_feature"]
+            lidar_feature = features["lidar_feature"]
         status_feature: torch.Tensor = features["status_feature"]
 
         batch_size = status_feature.shape[0]
@@ -148,7 +147,7 @@ class AgentHead(nn.Module):
         self._mlp_states = nn.Sequential(
             nn.Linear(self._d_model, self._d_ffn),
             nn.ReLU(),
-            nn.Linear(self._d_ffn, BoundingBox2DIndex.size()),
+            nn.Linear(self._d_ffn, len(BoundingBoxSE2Index)),
         )
 
         self._mlp_label = nn.Sequential(
@@ -159,8 +158,8 @@ class AgentHead(nn.Module):
         """Torch module forward pass."""
 
         agent_states = self._mlp_states(agent_queries)
-        agent_states[..., BoundingBox2DIndex.POINT] = agent_states[..., BoundingBox2DIndex.POINT].tanh() * 32
-        agent_states[..., BoundingBox2DIndex.HEADING] = agent_states[..., BoundingBox2DIndex.HEADING].tanh() * np.pi
+        agent_states[..., BoundingBoxSE2Index.XY] = agent_states[..., BoundingBoxSE2Index.XY].tanh() * 32
+        agent_states[..., BoundingBoxSE2Index.YAW] = agent_states[..., BoundingBoxSE2Index.YAW].tanh() * np.pi
 
         agent_labels = self._mlp_label(agent_queries).squeeze(dim=-1)
 
@@ -186,11 +185,11 @@ class TrajectoryHead(nn.Module):
         self._mlp = nn.Sequential(
             nn.Linear(self._d_model, self._d_ffn),
             nn.ReLU(),
-            nn.Linear(self._d_ffn, num_poses * StateSE2Index.size()),
+            nn.Linear(self._d_ffn, num_poses * len(PoseSE2Index)),
         )
 
     def forward(self, object_queries) -> Dict[str, torch.Tensor]:
         """Torch module forward pass."""
-        poses = self._mlp(object_queries).reshape(-1, self._num_poses, StateSE2Index.size())
-        poses[..., StateSE2Index.HEADING] = poses[..., StateSE2Index.HEADING].tanh() * np.pi
+        poses = self._mlp(object_queries).reshape(-1, self._num_poses, len(PoseSE2Index))
+        poses[..., PoseSE2Index.YAW] = poses[..., PoseSE2Index.YAW].tanh() * np.pi
         return {"trajectory": poses}

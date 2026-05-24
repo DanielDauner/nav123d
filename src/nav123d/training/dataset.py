@@ -8,8 +8,8 @@ from typing import Dict, List, Optional, Tuple
 import torch
 from tqdm import tqdm
 
+from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilder
 from nav123d.common.dataloader import SceneLoader
-from nav123d.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ class CacheOnlyDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         cache_path: str,
-        feature_builders: List[AbstractFeatureBuilder],
-        target_builders: List[AbstractTargetBuilder],
+        feature_builders: List[BaseFeatureBuilder],
+        target_builders: List[BaseTargetBuilder],
         log_names: Optional[List[str]] = None,
     ):
         """
@@ -81,8 +81,8 @@ class CacheOnlyDataset(torch.utils.data.Dataset):
     @staticmethod
     def _load_valid_caches(
         cache_path: Path,
-        feature_builders: List[AbstractFeatureBuilder],
-        target_builders: List[AbstractTargetBuilder],
+        feature_builders: List[BaseFeatureBuilder],
+        target_builders: List[BaseTargetBuilder],
         log_names: List[Path],
     ) -> Dict[str, Path]:
         """
@@ -136,8 +136,8 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(
         self,
         scene_loader: SceneLoader,
-        feature_builders: List[AbstractFeatureBuilder],
-        target_builders: List[AbstractTargetBuilder],
+        feature_builders: List[BaseFeatureBuilder],
+        target_builders: List[BaseTargetBuilder],
         cache_path: Optional[str] = None,
         force_cache_computation: bool = False,
     ):
@@ -158,8 +158,8 @@ class Dataset(torch.utils.data.Dataset):
     @staticmethod
     def _load_valid_caches(
         cache_path: Optional[Path],
-        feature_builders: List[AbstractFeatureBuilder],
-        target_builders: List[AbstractTargetBuilder],
+        feature_builders: List[BaseFeatureBuilder],
+        target_builders: List[BaseTargetBuilder],
     ) -> Dict[str, Path]:
         """
         Helper method to load valid cache paths.

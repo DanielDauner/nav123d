@@ -94,7 +94,7 @@ class TrajectorySampling:
 class TrajectorySE2:
     """Trajectory dataclass in NAVSIM."""
 
-    pose_se2_array: npt.NDArray[np.float64]  # local coordinates
+    pose_se2_array: npt.NDArray[np.float64]
     timestamps: npt.NDArray[np.int64]  # absolute timestamps in microseconds
 
     def __init__(
@@ -138,3 +138,10 @@ class TrajectorySE2:
         result = interpolator(query_s)
         result[..., PoseSE2Index.YAW] = normalize_angle(result[..., PoseSE2Index.YAW])
         return result
+
+
+class TrajectorySE3:
+    """Trajectory dataclass in NAVSIM."""
+
+
+Trajectory = Union[TrajectorySE2, TrajectorySE3]

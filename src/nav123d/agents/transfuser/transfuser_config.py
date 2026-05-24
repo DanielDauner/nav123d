@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from nuplan.common.actor_state.tracked_objects_types import TrackedObjectType
-from nuplan.common.maps.abstract_map import SemanticMapLayer
+from py123d.datatypes import DefaultBoxDetectionLabel, MapLayer
 
 
 @dataclass
@@ -81,23 +80,20 @@ class TransfuserConfig:
 
     # BEV mapping
     bev_semantic_classes = {
-        1: ("polygon", [SemanticMapLayer.LANE, SemanticMapLayer.INTERSECTION]),  # road
-        2: ("polygon", [SemanticMapLayer.WALKWAYS]),  # walkways
-        3: (
-            "linestring",
-            [SemanticMapLayer.LANE, SemanticMapLayer.LANE_CONNECTOR],
-        ),  # centerline
+        1: ("polygon", [MapLayer.LANE, MapLayer.INTERSECTION, MapLayer.GENERIC_DRIVABLE]),  # road
+        2: ("polygon", [MapLayer.WALKWAY]),  # walkways
+        3: ("linestring", [MapLayer.LANE]),  # centerline
         4: (
             "box",
             [
-                TrackedObjectType.CZONE_SIGN,
-                TrackedObjectType.BARRIER,
-                TrackedObjectType.TRAFFIC_CONE,
-                TrackedObjectType.GENERIC_OBJECT,
+                DefaultBoxDetectionLabel.TRAFFIC_SIGN,
+                DefaultBoxDetectionLabel.BARRIER,
+                DefaultBoxDetectionLabel.TRAFFIC_CONE,
+                DefaultBoxDetectionLabel.GENERIC_OBJECT,
             ],
         ),  # static_objects
-        5: ("box", [TrackedObjectType.VEHICLE]),  # vehicles
-        6: ("box", [TrackedObjectType.PEDESTRIAN]),  # pedestrians
+        5: ("box", [DefaultBoxDetectionLabel.VEHICLE]),  # vehicles
+        6: ("box", [DefaultBoxDetectionLabel.PERSON]),  # pedestrians
     }
 
     bev_pixel_width: int = lidar_resolution_width

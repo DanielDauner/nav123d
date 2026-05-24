@@ -2,10 +2,10 @@ from typing import Dict
 
 import torch
 import torch.nn.functional as F
+from py123d.geometry import BoundingBoxSE2Index
 from scipy.optimize import linear_sum_assignment
 
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
-from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
 
 
 def transfuser_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, torch.Tensor], config: TransfuserConfig):
@@ -43,8 +43,8 @@ def _agent_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, torch.T
 
     if config.latent:
         rad_to_ego = torch.arctan2(
-            gt_states[..., BoundingBox2DIndex.Y],
-            gt_states[..., BoundingBox2DIndex.X],
+            gt_states[..., BoundingBoxSE2Index.Y],
+            gt_states[..., BoundingBoxSE2Index.X],
         )
 
         in_latent_rad_thresh = torch.logical_and(

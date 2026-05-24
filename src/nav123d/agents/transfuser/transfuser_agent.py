@@ -5,18 +5,18 @@ import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
-from nav123d.agents.abstract_agent import AbstractAgent
-from nav123d.agents.transfuser.transfuser_callback import TransfuserCallback
+from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilder, BaseTorchAgent
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.transfuser.transfuser_features import TransfuserFeatureBuilder, TransfuserTargetBuilder
 from nav123d.agents.transfuser.transfuser_loss import transfuser_loss
 from nav123d.agents.transfuser.transfuser_model import TransfuserModel
-from nav123d.common.dataclasses import SensorConfig
+from nav123d.api.base_agent_api import ObservationType
 from nav123d.geometry.trajectory import TrajectorySampling
-from nav123d.training.abstract_feature_target_builder import AbstractFeatureBuilder, AbstractTargetBuilder
+
+# from nav123d.agents.transfuser.transfuser_callback import TransfuserCallback
 
 
-class TransfuserAgent(AbstractAgent):
+class TransfuserAgent(BaseTorchAgent):
     """Agent interface for TransFuser baseline."""
 
     def __init__(
@@ -56,27 +56,15 @@ class TransfuserAgent(AbstractAgent):
             ]
         self.load_state_dict({k.replace("agent.", ""): v for k, v in state_dict.items()})
 
-    def get_sensor_config(self) -> SensorConfig:
+    def get_observation_type(self) -> ObservationType:
         """Inherited, see superclass."""
-        # NOTE: Transfuser only uses current frame (with index 3 by default)
-        history_steps = [3]
-        return SensorConfig(
-            cam_f0=history_steps,
-            cam_l0=history_steps,
-            cam_l1=False,
-            cam_l2=False,
-            cam_r0=history_steps,
-            cam_r1=False,
-            cam_r2=False,
-            cam_b0=False,
-            lidar_pc=history_steps if not self._config.latent else False,
-        )
+        return ObservationType.SENSOR
 
-    def get_target_builders(self) -> List[AbstractTargetBuilder]:
+    def get_target_builders(self) -> List[BaseTargetBuilder]:
         """Inherited, see superclass."""
         return [TransfuserTargetBuilder(trajectory_sampling=self._trajectory_sampling, config=self._config)]
 
-    def get_feature_builders(self) -> List[AbstractFeatureBuilder]:
+    def get_feature_builders(self) -> List[BaseFeatureBuilder]:
         """Inherited, see superclass."""
         return [TransfuserFeatureBuilder(config=self._config)]
 
@@ -101,4 +89,5 @@ class TransfuserAgent(AbstractAgent):
 
     def get_training_callbacks(self) -> List[pl.Callback]:
         """Inherited, see superclass."""
-        return [TransfuserCallback(self._config)]
+        # return [TransfuserCallback(self._config)] # FIXME:
+        return []

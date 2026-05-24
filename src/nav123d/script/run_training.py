@@ -8,7 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
-from nav123d.agents.abstract_agent import AbstractAgent
+from nav123d.agents.base_agent import AbstractAgent
 from nav123d.common.dataclasses import SceneFilter
 from nav123d.common.dataloader import SceneLoader
 from nav123d.training.agent_lightning_module import AgentLightningModule

@@ -3,13 +3,13 @@ from typing import Dict, Tuple
 import pytorch_lightning as pl
 from torch import Tensor
 
-from nav123d.agents.abstract_agent import AbstractAgent
+from nav123d.agents.base_torch_agent import BaseTorchAgent
 
 
 class AgentLightningModule(pl.LightningModule):
     """Pytorch lightning wrapper for learnable agent."""
 
-    def __init__(self, agent: AbstractAgent):
+    def __init__(self, agent: BaseTorchAgent):
         """
         Initialise the lightning module wrapper.
         :param agent: agent interface in NAVSIM
@@ -48,6 +48,6 @@ class AgentLightningModule(pl.LightningModule):
         """
         return self._step(batch, "val")
 
-    def configure_optimizers(self):
+    def configure_optimizers(self):  # type: ignore
         """Inherited, see superclass."""
         return self.agent.get_optimizers()

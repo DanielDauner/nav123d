@@ -417,8 +417,8 @@ class Block(nn.Module):
         )
 
     def forward(self, x):
-        x = x + self.attn(self.ln1(x))
-        x = x + self.mlp(self.ln2(x))
+        x = x + self.attn(self.ln1(x))  # noqa: PLR6104
+        x = x + self.mlp(self.ln2(x))  # noqa: PLR6104
 
         return x
 

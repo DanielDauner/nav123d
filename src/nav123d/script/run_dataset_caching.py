@@ -10,7 +10,7 @@ from nuplan.planning.utils.multithreading.worker_pool import WorkerPool
 from nuplan.planning.utils.multithreading.worker_utils import worker_map
 from omegaconf import DictConfig
 
-from nav123d.agents.abstract_agent import AbstractAgent
+from nav123d.agents.base_agent import AbstractAgent
 from nav123d.common.dataclasses import SceneFilter, SensorConfig
 from nav123d.common.dataloader import SceneLoader
 from nav123d.training.dataset import Dataset
