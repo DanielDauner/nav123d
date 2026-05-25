@@ -27,3 +27,4 @@ dataset
 
 # running scripts
 scripts_dev/*
+visualization/*

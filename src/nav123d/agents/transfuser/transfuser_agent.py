@@ -43,7 +43,8 @@ class TransfuserAgent(BaseTorchAgent):
 
     def name(self) -> str:
         """Inherited, see superclass."""
-        return self.__class__.__name__
+        prefix = "Latent" if self._config.latent else ""
+        return f"{prefix}{self.__class__.__name__}"
 
     def initialize(self) -> None:
         """Inherited, see superclass."""
