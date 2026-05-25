@@ -4,25 +4,13 @@
     <source media="(prefers-color-scheme: light)" srcset="assets/logo/nav123d_black.svg" width="500">
     <img alt="Logo" src="https://kesai.eu/py123d/_static/123D_logo_transparent_black.svg" width="500">
   </picture>
-  <h2 align="center">Cross-Data-Driven Non-Reactive Autonomous Vehicle Simulation and Benchmarking</h2>
+  <h2 align="center">Cross-Dataset Reimplementation of NAVSIM</h2>
   <h2 align="center">"Because good things come in three." - Daniel</h2>
   <h3 align="center"><a href="https://arxiv.org/abs/2605.08084">Paper</a> | <a href="https://youtu.be/Q4q29fpXnx8">Video</a> | <a href="https://kesai.eu/py123d/">Documentation</a></h3>
 </h1>
 
 </div>
 
-<br/>
-
-> [**Pseudo-Simulation for Autonomous Driving**](https://arxiv.org/abs/2506.04218)
->
-> [Wei Cao](https://vveicao.github.io/)<sup>3,5</sup>, [Marcel Hallgarten](https://mh0797.github.io/)<sup>1,3,6</sup>, [Tianyu Li](https://github.com/sephyli)<sup>4</sup>, [Daniel Dauner](https://danieldauner.github.io/)<sup>1</sup>, [Xunjiang Gu](https://alfredgu001324.github.io/)<sup>6</sup>, [Caojun Wang](https://scholar.google.com/citations?user=35xHlDUAAAAJ)<sup>4</sup>, [Yakov Miron](https://www.linkedin.com/in/yakov-miron-0826121b/)<sup>3</sup>,\
-> [Marco Aiello](https://www.iaas.uni-stuttgart.de/en/institute/team/Aiello-00001/)<sup>5</sup>, [Hongyang Li](https://lihongyang.info/)<sup>4</sup>, [Igor Gilitschenski](https://www.gilitschenski.org/igor/)<sup>6,7</sup>, [Boris Ivanovic](https://www.borisivanovic.com/)<sup>2</sup>, [Marco Pavone](https://web.stanford.edu/~pavone/)<sup>2,8</sup>, [Andreas Geiger](https://www.cvlibs.net/)<sup>1</sup>, and [Kashyap Chitta](https://kashyap7x.github.io/)<sup>1,2</sup>  <br>
->
-> <sup>1</sup>University of Tübingen, Tübingen AI Center, <sup>2</sup>NVIDIA Research, <sup>3</sup>Robert Bosch GmbH\
-> <sup>4</sup>OpenDriveLab at Shanghai Innovation Institute, <sup>5</sup>University of Stuttgart, <sup>6</sup>University of Toronto, <sup>7</sup>Vector Institute, <sup>8</sup>Stanford University
->
-> Conference on Robot Learning (CoRL), 2025
-<br/>
 
 The main branch contains the code for NAVSIM v2, used in the 2025 NAVSIM challenge. <b style='color:red;'>For NAVSIM v1, as well as its `navtest` leaderboard, which are also part of this repository, please check the [v1.1 branch](https://github.com/autonomousvision/navsim/tree/v1.1).</b>
 

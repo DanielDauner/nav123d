@@ -41,17 +41,17 @@ class TransfuserCallback(pl.Callback):
         self._num_rows = num_rows
         self._num_columns = num_columns
 
-    def on_validation_epoch_start(self, trainer: pl.Trainer, lightning_module: pl.LightningModule) -> None:
+    def on_validation_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_validation_epoch_end(self, trainer: pl.Trainer, lightning_module: pl.LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Inherited, see superclass."""
-        device = lightning_module.device
+        device = pl_module.device
         for idx_plot in range(self._num_plots):
             features, targets = next(iter(trainer.val_dataloaders))
             features, targets = dict_to_device(features, device), dict_to_device(targets, device)
             with torch.no_grad():
-                predictions = lightning_module.agent.forward(features)
+                predictions = pl_module.agent.forward(features)
 
             features, targets, predictions = (
                 dict_to_device(features, "cpu"),
@@ -61,26 +61,26 @@ class TransfuserCallback(pl.Callback):
             grid = self._visualize_model(features, targets, predictions)
             trainer.logger.experiment.add_image(f"val_plot_{idx_plot}", grid, global_step=trainer.current_epoch)
 
-    def on_test_epoch_start(self, trainer: pl.Trainer, lightning_module: pl.LightningModule) -> None:
+    def on_test_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_test_epoch_end(self, trainer: pl.Trainer, lightning_module: pl.LightningModule) -> None:
+    def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_train_epoch_start(self, trainer: pl.Trainer, lightning_module: pl.LightningModule) -> None:
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Inherited, see superclass."""
 
     def on_train_epoch_end(
-        self, trainer: pl.Trainer, lightning_module: pl.LightningModule, unused: Optional[Any] = None
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, unused: Optional[Any] = None
     ) -> None:
         """Inherited, see superclass."""
 
-        device = lightning_module.device
+        device = pl_module.device
         for idx_plot in range(self._num_plots):
             features, targets = next(iter(trainer.train_dataloader))
             features, targets = dict_to_device(features, device), dict_to_device(targets, device)
             with torch.no_grad():
-                predictions = lightning_module.agent.forward(features)
+                predictions = pl_module.agent.forward(features)
 
             features, targets, predictions = (
                 dict_to_device(features, "cpu"),
@@ -174,7 +174,7 @@ def semantic_map_to_rgb(semantic_map: npt.NDArray[np.int64], config: TransfuserC
             )
 
         rgb_map[semantic_map == label] = ImageColor.getcolor(hex_color, "RGB")
-    return rgb_map[::-1, ::-1]
+    return rgb_map[::-1, ::-1]  # type: ignore
 
 
 def lidar_map_to_rgb(
@@ -227,4 +227,4 @@ def lidar_map_to_rgb(
         for x, y in trajectory_indices:
             cv2.circle(rgb_map, (y, x), point_size, color, -1)  # -1 fills the circle
 
-    return rgb_map[::-1, ::-1]
+    return rgb_map[::-1, ::-1]  # type: ignore

@@ -163,7 +163,7 @@ def _get_starting_lane(
     return starting_lane
 
 
-def _get_discrete_centerline(
+def get_centerline_as_polyline_se2(
     current_lane: Lane,
     route_lane_group_dict: Dict[int, LaneGroup],
     route_lane_dict: Dict[int, Lane],
@@ -233,11 +233,7 @@ def _get_discrete_centerline(
 
 
 def _get_proposal_paths(
-    current_lane: Lane,
-    route_lane_group_dict: Dict[int, LaneGroup],
-    route_lane_dict: Dict[int, Lane],
-    lateral_offsets: Optional[List[float]],
-    ego_state_se2: Optional[EgoStateSE2] = None,
+    centerline_polyline_se2: PolylineSE2, lateral_offsets: Optional[List[float]]
 ) -> List[PolylineSE2]:
     """
     Builds proposal paths: centerline at index 0, plus optional lateral offsets.
@@ -248,12 +244,7 @@ def _get_proposal_paths(
     :param ego_state_se2: ego state used to sanity-check the centerline starts near ego
     :return: list of paths (index 0 is centerline)
     """
-    centerline_polyline_se2 = _get_discrete_centerline(
-        current_lane,
-        route_lane_group_dict,
-        route_lane_dict,
-        ego_state_se2=ego_state_se2,
-    )
+
     output_paths: List[PolylineSE2] = [centerline_polyline_se2]
     if lateral_offsets is not None:
         for lateral_offset in lateral_offsets:

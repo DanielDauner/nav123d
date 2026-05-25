@@ -119,7 +119,7 @@ class PDMObservation:
         self,
         ego_state_se2: EgoStateSE2,
         box_detections_se2: BoxDetectionsSE2,
-        traffic_light_detections: TrafficLightDetections,
+        traffic_light_detections: Optional[TrafficLightDetections],
         route_lane_dict: Dict[int, Lane],
     ) -> None:
         """
@@ -130,6 +130,9 @@ class PDMObservation:
         :param route_lane_dict: dictionary of on-route lanes
         :param map_api: map object of nuPlan
         """
+
+        if traffic_light_detections is None:
+            traffic_light_detections = TrafficLightDetections([], ego_state_se2.timestamp)
 
         self._occupancy_maps = []
         object_manager = self._get_object_manager(ego_state_se2, box_detections_se2)

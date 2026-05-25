@@ -11,12 +11,13 @@ class BatchIDMPolicy:
 
     def __init__(
         self,
-        fallback_target_velocity: Union[List[float], float],
-        speed_limit_fraction: Union[List[float], float],
-        min_gap_to_lead_agent: Union[List[float], float],
-        headway_time: Union[List[float], float],
-        accel_max: Union[List[float], float],
-        decel_max: Union[List[float], float],
+        fallback_target_velocity: Union[List[float], float] = 15.0,
+        speed_limit_fraction: Union[List[float], float] = [0.2, 0.4, 0.6, 0.8, 1.0],
+        min_gap_to_lead_agent: Union[List[float], float] = 1.0,
+        headway_time: Union[List[float], float] = 1.5,
+        accel_max: Union[List[float], float] = 1.5,
+        decel_max: Union[List[float], float] = 3.0,
+        acceleration_exponent: float = 10,
     ):
         """
         Constructor for BatchIDMPolicy
@@ -26,6 +27,7 @@ class BatchIDMPolicy:
         :param headway_time: Desired time headway. Minimum time to the vehicle in front [s]
         :param accel_max: maximum acceleration [m/s^2]
         :param decel_max: maximum deceleration (positive value) [m/s^2]
+        :param acceleration_exponent: acceleration exponent of IDM.
         """
         parameter_list = [
             fallback_target_velocity,
@@ -46,14 +48,13 @@ class BatchIDMPolicy:
             num_policies = 1
 
         self._num_policies: int = num_policies
-
         self._fallback_target_velocities: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
         self._speed_limit_fractions: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
         self._min_gap_to_lead_agent: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
         self._headway_time: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
         self._accel_max: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
-
         self._decel_max: npt.NDArray[np.float64] = np.zeros((self._num_policies), dtype=np.float64)
+        self._acceleration_exponent: float = acceleration_exponent
 
         for i in range(self._num_policies):
             self._fallback_target_velocities[i] = (
@@ -144,9 +145,6 @@ class BatchIDMPolicy:
             self._decel_max[longitudinal_idcs],
         )
 
-        # TODO: add as parameter
-        acceleration_exponent = 10
-
         # convenience definitions
         s_star = (
             min_gap_to_lead_agent
@@ -158,7 +156,9 @@ class BatchIDMPolicy:
 
         # differential equations
         x_agent_dot = v_agent
-        v_agent_dot = accel_max * (1 - (v_agent / target_velocity) ** acceleration_exponent - (s_star / s_alpha) ** 2)
+        v_agent_dot = accel_max * (
+            1 - (v_agent / target_velocity) ** self._acceleration_exponent - (s_star / s_alpha) ** 2
+        )
 
         # clip values
         v_agent_dot = np.clip(v_agent_dot, -decel_max, accel_max)

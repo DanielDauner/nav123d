@@ -83,6 +83,9 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
 
         # only consider (x,y,z) & swap axes for (N,3) numpy array
         lidar = agent_api.get_lidar_at_iteration(0, LidarID.LIDAR_MERGED)
+        if lidar is None:
+            lidar = agent_api.get_lidar_at_iteration(0, LidarID.LIDAR_TOP)
+
         assert lidar is not None, "LiDAR should be available for feature computation!"
         lidar_xyz = lidar.xyz
 
