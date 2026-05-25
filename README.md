@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/nav123d_black.svg" width="500">
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo/nav123d_white.svg" width="500">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo/nav123d_black.svg" width="500">
     <img alt="Logo" src="https://kesai.eu/py123d/_static/123D_logo_transparent_black.svg" width="500">
   </picture>
   <h2 align="center">Cross-Data-Driven Non-Reactive Autonomous Vehicle Simulation and Benchmarking</h2>
