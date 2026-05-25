@@ -1,10 +1,13 @@
-<div id="top" align="center">
-
-<p align="center">
-  <img src="assets/navsim_transparent.png" width="600">
-  <h2 align="center">Pseudo-Simulation for Autonomous Driving</h1>
-  <h3 align="center"><a href="https://arxiv.org/abs/2506.04218">Paper</a> | <a href="https://vveicao.github.io/projects/NavsimV2/Cao2025_supp.pdf">Supplementary</a> | <a href="https://huggingface.co/spaces/AGC2025/e2e-driving-navhard"> Public Leaderboard v2 (navhard)</a> | <a href="https://huggingface.co/spaces/AGC2024-P/e2e-driving-navtest"> Public Leaderboard v1 (navtest)</a> </h3>
-</p>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/nav123d_black.svg" width="500">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/nav123d_white.svg" width="500">
+    <img alt="Logo" src="https://kesai.eu/py123d/_static/123D_logo_transparent_black.svg" width="500">
+  </picture>
+  <h2 align="center">Cross-Data-Driven Non-Reactive Autonomous Vehicle Simulation and Benchmarking</h2>
+  <h2 align="center">"Because good things come in three." - Daniel</h2>
+  <h3 align="center"><a href="https://arxiv.org/abs/2605.08084">Paper</a> | <a href="https://youtu.be/Q4q29fpXnx8">Video</a> | <a href="https://kesai.eu/py123d/">Documentation</a></h3>
+</h1>
 
 </div>
 
