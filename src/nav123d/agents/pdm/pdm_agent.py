@@ -141,7 +141,7 @@ class PDMAgent(BaseAgent):
         )
 
         # Update/Create drivable area polygon map
-        drivable_area_map = build_drivable_area_occupancy_map(
+        self._drivable_area_map = build_drivable_area_occupancy_map(
             map_api=self._map_api,
             ego_state_se2=ego_state_se2,
             map_radius=self._map_radius,
@@ -173,7 +173,7 @@ class PDMAgent(BaseAgent):
             observation=self._observation,
             centerline=self._centerline,
             route_lane_ids=list(self._route_lane_dict.keys()),
-            drivable_area_map=drivable_area_map,
+            drivable_area_map=self._drivable_area_map,
             ego_metadata=ego_state_se2.metadata,
         )
         proposal_scores = np.array(pd.concat(pdm_results)["pdm_score"])

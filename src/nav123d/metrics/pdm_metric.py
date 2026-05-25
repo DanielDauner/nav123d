@@ -7,10 +7,11 @@ from py123d.datatypes import EgoStateSE2
 from py123d.geometry.transform import rel_to_abs_se2_array
 
 from nav123d.agents.pdm.observation.pdm_observation import PDMObservation
-from nav123d.agents.pdm.pdm_closed_planner import PDMClosedInput, get_pdm_closed_planner
+from nav123d.agents.pdm.pdm_agent import PDMAgent
 from nav123d.agents.pdm.scoring.pdm_scorer import PDMScorer
 from nav123d.agents.pdm.simulation.pdm_simulator import PDMSimulator
 from nav123d.agents.pdm.utils.pdm_enums import StateIndex
+from nav123d.api import scene_api_to_agent_api
 from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.metrics.base_metric import BaseMetric
 
@@ -27,24 +28,26 @@ class PDMMetric(BaseMetric):
 
         # 1. Run PDM-Closed to get trajectory.
         # 1.1 Initialize PDM-Closed planner with map and route information.
-        pdm_planner = get_pdm_closed_planner()
+        pdm_agent = PDMAgent()
         map_api = scene_api.get_map_api()
         assert map_api is not None, "MapAPI not found in SceneAPI."
-        modality = scene_api.get_custom_modality_at_iteration(0, "scenario")
-        assert modality is not None, "Scenario modality not found at iteration 2."
-        lane_group_ids = [int(id_) for id_ in modality.data["route_roadblock_ids"]]
-        pdm_planner.initialize(map_api, lane_group_ids)
+        pdm_agent.initialize()
+
         # 1.2 Run PDM-Closed inference
-        current_input = PDMClosedInput.from_scene_api(scene_api)
-        pdm_trajectory = pdm_planner.compute_planner_trajectory(current_input)
+        agent_api = scene_api_to_agent_api(scene_api, observation_type=pdm_agent.get_observation_type())
+        pdm_trajectory = pdm_agent.compute_trajectory(agent_api)
+        assert isinstance(pdm_trajectory, TrajectorySE2), "PDM-Closed trajectory must be of type TrajectorySE2."
 
         # 2. Convert PDM + agent trajectory to state arrays well aligned.
-        initial_ego_state_se2 = current_input.ego_state_se2
+        _ego_state_se3 = scene_api.get_ego_state_se3_at_iteration(0)
+        assert _ego_state_se3 is not None, "Initial ego state SE3 not found in SceneAPI."
+        initial_ego_state_se2 = _ego_state_se3.ego_state_se2
+
         resampled_pdm_trajectory = _resample_trajectory_se2(
             trajectory=pdm_trajectory,
             sampling=self._score_trajectory_sampling,
             initial_ego_state_se2=initial_ego_state_se2,
-            convert_to_absolute=True,
+            convert_to_absolute=False,
         )
         resampled_agent_trajectory = _resample_trajectory_se2(
             trajectory=agent_trajectory,
@@ -66,14 +69,12 @@ class PDMMetric(BaseMetric):
 
         # 4. Evaluate PDM and agent trajectory with PDM-Closed scorer.
         # TODO@DanielDauner: This needs a cleaner solution, needs to be refactored together with PDMScorer.
-        assert pdm_planner._drivable_area_map is not None, "PDM-Closed planner drivable area map is not initialized."
-        assert pdm_planner._route_lane_group_dict is not None, (
-            "PDM-Closed planner route lane groups are not initialized."
-        )
-        assert pdm_planner._centerline is not None, "PDM-Closed planner centerline is not initialized."
-        drivable_area_map = pdm_planner._drivable_area_map
-        route_lane_ids = list(pdm_planner._route_lane_group_dict.keys())
-        centerline = pdm_planner._centerline
+        assert pdm_agent._drivable_area_map is not None, "PDM-Closed planner drivable area map is not initialized."
+        assert pdm_agent._route_lane_group_dict is not None, "PDM-Closed planner route lane groups are not initialized."
+        assert pdm_agent._centerline is not None, "PDM-Closed planner centerline is not initialized."
+        drivable_area_map = pdm_agent._drivable_area_map
+        route_lane_ids = list(pdm_agent._route_lane_group_dict.keys())
+        centerline = pdm_agent._centerline
 
         log_replay_observation = PDMObservation(
             trajectory_sampling=TrajectorySampling(time_horizon=8, interval_length=0.1),
@@ -94,7 +95,7 @@ class PDMMetric(BaseMetric):
         )
 
         # 5. Return PDM sub-scores as dict.
-        return pdm_scores[1]  # type: ignore
+        return pdm_scores[1].iloc[0].to_dict()
 
 
 def _resample_trajectory_se2(

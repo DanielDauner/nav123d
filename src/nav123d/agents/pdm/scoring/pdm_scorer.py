@@ -225,10 +225,10 @@ class PDMScorer:
         self._calculate_comfort()
 
         pdm_scores = self._aggregate_pdm_scores()
-        multiplicative_metrics_prods, weighted_metrics_all = (
-            self._state.multi_metrics.prod(axis=0),
-            self._state.weighted_metrics,
-        )
+        # multiplicative_metrics_prods, weighted_metrics_all = (
+        #     self._state.multi_metrics.prod(axis=0),
+        #     self._state.weighted_metrics,
+        # )
 
         results: List[pd.DataFrame] = []
         for proposal_idx in range(self._state.num_proposals):
@@ -243,8 +243,8 @@ class PDMScorer:
             time_to_collision_within_bound = self._state.weighted_metrics[WeightedMetricIndex.TTC, proposal_idx]
             comfort = self._state.weighted_metrics[WeightedMetricIndex.COMFORT, proposal_idx]
 
-            multiplicative_metrics_prod = multiplicative_metrics_prods[proposal_idx]
-            weighted_metrics = weighted_metrics_all[:, proposal_idx]
+            # multiplicative_metrics_prod = multiplicative_metrics_prods[proposal_idx]
+            # weighted_metrics = weighted_metrics_all[:, proposal_idx]
             pdm_score = pdm_scores[proposal_idx]
 
             results.append(
@@ -258,9 +258,6 @@ class PDMScorer:
                             ego_progress=ego_progress,
                             time_to_collision_within_bound=time_to_collision_within_bound,
                             comfort=comfort,
-                            multiplicative_metrics_prod=multiplicative_metrics_prod,
-                            weighted_metrics=weighted_metrics,
-                            weighted_metrics_array=self._config.weighted_metrics_array,
                             pdm_score=pdm_score,
                         )
                     ]

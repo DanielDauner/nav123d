@@ -222,7 +222,7 @@ def get_centerline_as_polyline_se2(
 
     if ego_state_se2 is not None:
         ego_xy = ego_state_se2.rear_axle_se2.array[:2]
-        start_offset = float(np.linalg.norm(stacked[0, :2] - ego_xy))
+        start_offset = float(np.linalg.norm(stacked[:, :2] - ego_xy, axis=1).min())
         assert start_offset < max_centerline_start_offset, (
             f"Centerline starts {start_offset:.1f}m from ego "
             f"(start_lane={current_lane.object_id}, route_plan_len={len(route_plan)}, "

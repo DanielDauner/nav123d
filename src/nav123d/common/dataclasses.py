@@ -8,7 +8,6 @@ from dataclasses import dataclass
 # from pathlib import Path
 # from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union
 import numpy as np
-import numpy.typing as npt
 
 # from nuplan.common.actor_state.state_representation import StateSE2
 # from nuplan.common.maps.abstract_map import AbstractMap
@@ -847,10 +846,6 @@ class PDMResults:
     time_to_collision_within_bound: float
     comfort: float
 
-    multiplicative_metrics_prod: float
-    weighted_metrics: npt.NDArray[np.float64]
-    weighted_metrics_array: npt.NDArray[np.float64]
-
     pdm_score: float
 
     @classmethod
@@ -867,8 +862,5 @@ class PDMResults:
             ego_progress=np.nan,
             time_to_collision_within_bound=np.nan,
             comfort=np.nan,
-            multiplicative_metrics_prod=np.nan,
-            weighted_metrics=np.nan,
-            weighted_metrics_array=np.nan,
             pdm_score=np.nan,
         )
