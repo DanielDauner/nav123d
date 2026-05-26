@@ -1,80 +1,25 @@
 import logging
-from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import hydra
 import pytorch_lightning as pl
 from hydra.utils import instantiate
 from omegaconf import DictConfig
+from py123d.api import SceneAPI
+from py123d.common.execution import Executor
+from py123d.script.builders.execution_builder import build_executor
+from py123d.script.builders.scene_builder_builder import build_scene_builder
+from py123d.script.builders.scene_filter_builder import build_scene_filter
 from torch.utils.data import DataLoader
 
-from nav123d.agents.base_agent import AbstractAgent
-from nav123d.common.dataclasses import SceneFilter
-from nav123d.common.dataloader import SceneLoader
-from nav123d.training.agent_lightning_module import AgentLightningModule
-from nav123d.training.dataset import Dataset, TorchAgentCahedDataset
+from nav123d.agents.base_torch_agent import BaseTorchAgent
+from nav123d.training.torch_agent_dataset import TorchAgentCachedDataset, TorchAgentDataset
+from nav123d.training.torch_agent_lightning_module import TorchAgentLightningModule
 
 logger = logging.getLogger(__name__)
 
 CONFIG_PATH = "config/training"
 CONFIG_NAME = "default_training"
-
-
-def build_datasets(cfg: DictConfig, agent: AbstractAgent) -> Tuple[Dataset, Dataset]:
-    """
-    Builds training and validation datasets from omega config
-    :param cfg: omegaconf dictionary
-    :param agent: interface of agents in NAVSIM
-    :return: tuple for training and validation dataset
-    """
-    train_scene_filter: SceneFilter = instantiate(cfg.train_test_split.scene_filter)
-    if train_scene_filter.log_names is not None:
-        train_scene_filter.log_names = [
-            log_name for log_name in train_scene_filter.log_names if log_name in cfg.train_logs
-        ]
-    else:
-        train_scene_filter.log_names = cfg.train_logs
-
-    val_scene_filter: SceneFilter = instantiate(cfg.train_test_split.scene_filter)
-    if val_scene_filter.log_names is not None:
-        val_scene_filter.log_names = [log_name for log_name in val_scene_filter.log_names if log_name in cfg.val_logs]
-    else:
-        val_scene_filter.log_names = cfg.val_logs
-
-    data_path = Path(cfg.navsim_log_path)
-    original_sensor_path = Path(cfg.original_sensor_path)
-
-    train_scene_loader = SceneLoader(
-        original_sensor_path=original_sensor_path,
-        data_path=data_path,
-        scene_filter=train_scene_filter,
-        sensor_config=agent.get_sensor_config(),
-    )
-
-    val_scene_loader = SceneLoader(
-        original_sensor_path=original_sensor_path,
-        data_path=data_path,
-        scene_filter=val_scene_filter,
-        sensor_config=agent.get_sensor_config(),
-    )
-
-    train_data = Dataset(
-        scene_loader=train_scene_loader,
-        feature_builders=agent.get_feature_builders(),
-        target_builders=agent.get_target_builders(),
-        cache_path=cfg.cache_path,
-        force_cache_computation=cfg.force_cache_computation,
-    )
-
-    val_data = Dataset(
-        scene_loader=val_scene_loader,
-        feature_builders=agent.get_feature_builders(),
-        target_builders=agent.get_target_builders(),
-        cache_path=cfg.cache_path,
-        force_cache_computation=cfg.force_cache_computation,
-    )
-
-    return train_data, val_data
 
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
@@ -90,12 +35,10 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Path where all results are stored: {cfg.output_dir}")
 
     logger.info("Building Agent")
-    agent: AbstractAgent = instantiate(cfg.agent)
+    torch_agent: BaseTorchAgent = instantiate(cfg.agent)
 
     logger.info("Building Lightning Module")
-    lightning_module = AgentLightningModule(
-        agent=agent,
-    )
+    lightning_module = TorchAgentLightningModule(agent=torch_agent)
 
     if cfg.use_cache_without_dataset:
         logger.info("Using cached data without building SceneLoader")
@@ -105,37 +48,73 @@ def main(cfg: DictConfig) -> None:
         assert cfg.cache_path is not None, (
             "cache_path must be provided when using cached data without building SceneLoader"
         )
-        train_data = TorchAgentCahedDataset(
+        train_data = TorchAgentCachedDataset(
             cache_path=cfg.cache_path,
-            feature_builders=agent.get_feature_builders(),
-            target_builders=agent.get_target_builders(),
+            feature_builders=torch_agent.get_feature_builders(),
+            target_builders=torch_agent.get_target_builders(),
             log_names=cfg.train_logs,
         )
-        val_data = TorchAgentCahedDataset(
+        val_data = TorchAgentCachedDataset(
             cache_path=cfg.cache_path,
-            feature_builders=agent.get_feature_builders(),
-            target_builders=agent.get_target_builders(),
+            feature_builders=torch_agent.get_feature_builders(),
+            target_builders=torch_agent.get_target_builders(),
             log_names=cfg.val_logs,
         )
     else:
-        logger.info("Building SceneLoader")
-        train_data, val_data = build_datasets(cfg, agent)
+        executor = build_executor(cfg.executor)
+        train_data, val_data = build_datasets(cfg, torch_agent, executor)
 
     logger.info("Building Datasets")
     train_dataloader = DataLoader(train_data, **cfg.dataloader.params, shuffle=True)
-    logger.info("Num training samples: %d", len(train_data))
+    logger.info("Num training samples: %d", len(train_data))  # type: ignore
     val_dataloader = DataLoader(val_data, **cfg.dataloader.params, shuffle=False)
-    logger.info("Num validation samples: %d", len(val_data))
+    logger.info("Num validation samples: %d", len(val_data))  # type: ignore
 
     logger.info("Building Trainer")
-    trainer = pl.Trainer(**cfg.trainer.params, callbacks=agent.get_training_callbacks())
+    trainer = pl.Trainer(**cfg.trainer.params, callbacks=torch_agent.get_training_callbacks())
 
     logger.info("Starting Training")
-    trainer.fit(
-        model=lightning_module,
-        train_dataloaders=train_dataloader,
-        val_dataloaders=val_dataloader,
+    trainer.fit(model=lightning_module, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+
+
+def build_datasets(
+    cfg: DictConfig, agent: BaseTorchAgent, executor: Executor
+) -> Tuple[TorchAgentDataset, TorchAgentDataset]:
+    """TODO"""
+
+    # 1. Build training and validation scenes using scene builder and filter from hydra modules.
+    scene_builder = build_scene_builder(cfg.scene_builder)
+    train_scenes: List[SceneAPI] = []
+    for _train_scene_filter_cfg in cfg.train_scene_filters:
+        _train_scene_filter = build_scene_filter(_train_scene_filter_cfg)
+        _train_scenes = scene_builder.get_scenes(filter=_train_scene_filter, executor=executor)
+        train_scenes.extend(_train_scenes)
+
+    val_scenes: List[SceneAPI] = []
+    for _val_scene_filter_cfg in cfg.val_scene_filters:
+        _val_scene_filter = build_scene_filter(_val_scene_filter_cfg)
+        _val_scenes = scene_builder.get_scenes(filter=_val_scene_filter, executor=executor)
+        val_scenes.extend(_val_scenes)
+
+    train_data = TorchAgentDataset(
+        scenes=train_scenes,
+        feature_builders=agent.get_feature_builders(),
+        target_builders=agent.get_target_builders(),
+        observation_type=agent.get_observation_type(),
+        cache_path=cfg.cache_path,
+        force_cache_computation=cfg.force_cache_computation,
     )
+
+    val_data = TorchAgentDataset(
+        scenes=val_scenes,
+        feature_builders=agent.get_feature_builders(),
+        target_builders=agent.get_target_builders(),
+        observation_type=agent.get_observation_type(),
+        cache_path=cfg.cache_path,
+        force_cache_computation=cfg.force_cache_computation,
+    )
+
+    return train_data, val_data
 
 
 if __name__ == "__main__":

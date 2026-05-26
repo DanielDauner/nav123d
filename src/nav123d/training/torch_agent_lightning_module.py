@@ -6,7 +6,7 @@ from torch import Tensor
 from nav123d.agents.base_torch_agent import BaseTorchAgent
 
 
-class AgentLightningModule(pl.LightningModule):
+class TorchAgentLightningModule(pl.LightningModule):
     """Pytorch lightning wrapper for learnable agent."""
 
     def __init__(self, agent: BaseTorchAgent):

@@ -11,6 +11,8 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilder
+from nav123d.api import scene_api_to_agent_api
+from nav123d.api.base_agent_api import ObservationType
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +37,14 @@ class TorchAgentDataset(Dataset):
         scenes: List[SceneAPI],
         feature_builders: List[BaseFeatureBuilder],
         target_builders: List[BaseTargetBuilder],
+        observation_type: ObservationType,
         cache_path: Optional[str] = None,
         force_cache_computation: bool = False,
     ):
         self._scenes = scenes
         self._feature_builders = feature_builders
         self._target_builders = target_builders
+        self._observation_type = observation_type
 
         self._cache_path: Optional[Path] = Path(cache_path) if cache_path else None
         self._force_cache_computation = force_cache_computation
@@ -69,59 +73,57 @@ class TorchAgentDataset(Dataset):
 
         if (cache_path is not None) and cache_path.is_dir():
             for log_path in cache_path.iterdir():
-                for token_path in log_path.iterdir():
+                for scene_uuid_path in log_path.iterdir():
                     found_caches: List[bool] = []
                     for builder in feature_builders + target_builders:
-                        data_dict_path = token_path / (builder.get_unique_name() + ".gz")
+                        data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
                         found_caches.append(data_dict_path.is_file())
                     if all(found_caches):
-                        valid_cache_paths[token_path.name] = token_path
+                        valid_cache_paths[scene_uuid_path.name] = scene_uuid_path
 
         return valid_cache_paths
 
-    def _cache_scene_with_token(self, token: str) -> None:
+    def _cache_scene_with_uuid(self, scene: SceneAPI) -> None:
         """
         Helper function to compute feature / targets and save in cache.
         :param token: unique identifier of scene to cache
         """
+        assert self._cache_path is not None, "Dataset did not receive a cache path!"
 
-        scene = self._scene_loader.get_scene_from_token(token)
-        agent_input = scene.get_agent_input()
+        log_metadata = scene.get_log_metadata()
+        scene_uuid_path = self._cache_path / log_metadata.log_name / scene.scene_uuid
+        os.makedirs(scene_uuid_path, exist_ok=True)
 
-        metadata = scene.scene_metadata
-        token_path = self._cache_path / metadata.log_name / metadata.initial_token
-        os.makedirs(token_path, exist_ok=True)
-
+        agent_api = scene_api_to_agent_api(scene, self._observation_type)
         for builder in self._feature_builders:
-            data_dict_path = token_path / (builder.get_unique_name() + ".gz")
-            data_dict = builder.compute_features(agent_input)
+            data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
+            data_dict = builder.compute_features(agent_api)
             dump_feature_target_to_pickle(data_dict_path, data_dict)
 
         for builder in self._target_builders:
-            data_dict_path = token_path / (builder.get_unique_name() + ".gz")
+            data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
             data_dict = builder.compute_targets(scene)
             dump_feature_target_to_pickle(data_dict_path, data_dict)
 
-        self._valid_cache_paths[token] = token_path
+        self._valid_cache_paths[scene.scene_uuid] = scene_uuid_path
 
-    def _load_scene_with_token(self, token: str) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    def _load_scene_with_uuid(self, uuid: str) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """
         Helper function to load feature / targets from cache.
-        :param token:  unique identifier of scene to load
+        :param uuid:  unique identifier of scene to load
         :return: tuple of feature and target dictionaries
         """
 
-        token_path = self._valid_cache_paths[token]
-
+        scene_uuid_path = self._valid_cache_paths[uuid]
         features: Dict[str, torch.Tensor] = {}
         for builder in self._feature_builders:
-            data_dict_path = token_path / (builder.get_unique_name() + ".gz")
+            data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
             data_dict = load_feature_target_from_pickle(data_dict_path)
             features.update(data_dict)
 
         targets: Dict[str, torch.Tensor] = {}
         for builder in self._target_builders:
-            data_dict_path = token_path / (builder.get_unique_name() + ".gz")
+            data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
             data_dict = load_feature_target_from_pickle(data_dict_path)
             targets.update(data_dict)
 
@@ -133,28 +135,14 @@ class TorchAgentDataset(Dataset):
         assert self._cache_path is not None, "Dataset did not receive a cache path!"
         os.makedirs(self._cache_path, exist_ok=True)
 
-        # determine tokens to cache
-        if self._force_cache_computation:
-            tokens_to_cache = self._scene_loader.tokens
-        else:
-            tokens_to_cache = set(self._scene_loader.tokens) - set(self._valid_cache_paths.keys())
-            tokens_to_cache = list(tokens_to_cache)
-            logger.info(
-                f"""
-                Starting caching of {len(tokens_to_cache)} tokens.
-                Note: Caching tokens within the training loader is slow. Only use it with a small number of tokens.
-                You can cache large numbers of tokens using the `run_dataset_caching.py` python script.
-                """
-            )
+        for scene in tqdm(self._scenes, desc="Caching Dataset"):
+            self._cache_scene_with_uuid(scene)
 
-        for token in tqdm(tokens_to_cache, desc="Caching Dataset"):
-            self._cache_scene_with_token(token)
-
-    def __len__(self) -> None:
+    def __len__(self) -> int:
         """
         :return: number of samples to load
         """
-        return len(self._scene_loader)
+        return len(self._scenes)
 
     def __getitem__(self, idx: int) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """
@@ -163,19 +151,17 @@ class TorchAgentDataset(Dataset):
         :return: tuple of feature and target dictionary
         """
 
-        token = self._scene_loader.tokens[idx]
+        scene = self._scenes[idx]
+        uuid = scene.scene_uuid
         features: Dict[str, torch.Tensor] = {}
         targets: Dict[str, torch.Tensor] = {}
 
         if self._cache_path is not None:
-            assert token in self._valid_cache_paths.keys(), (
-                f"The token {token} has not been cached yet, please call cache_dataset first!"
-            )
-
-            features, targets = self._load_scene_with_token(token)
+            if (uuid not in self._valid_cache_paths) or self._force_cache_computation:
+                self._cache_scene_with_uuid(scene)
+            features, targets = self._load_scene_with_uuid(uuid)
         else:
-            scene = self._scene_loader.get_scene_from_token(self._scene_loader.tokens[idx])
-            agent_input = scene.get_agent_input()
+            agent_input = scene_api_to_agent_api(scene, self._observation_type)
             for builder in self._feature_builders:
                 features.update(builder.compute_features(agent_input))
             for builder in self._target_builders:
@@ -184,7 +170,7 @@ class TorchAgentDataset(Dataset):
         return (features, targets)
 
 
-class TorchAgentCahedDataset(Dataset):
+class TorchAgentCachedDataset(Dataset):
     """Dataset wrapper for feature/target datasets from cache only."""
 
     def __init__(

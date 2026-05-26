@@ -130,11 +130,12 @@ class PDMAgent(BaseAgent):
             assert self._map_api is not None and self._route_lane_group_dict is not None, (
                 "Planner not initialized properly."
             )
-            self._route_lane_group_dict, self._route_lane_dict = correct_route_lane_groups(
-                ego_state_se2=ego_state_se2,
-                map_api=self._map_api,
-                route_lane_group_dict=self._route_lane_group_dict,
-            )
+            if self._route_correction:
+                self._route_lane_group_dict, self._route_lane_dict = correct_route_lane_groups(
+                    ego_state_se2=ego_state_se2,
+                    map_api=self._map_api,
+                    route_lane_group_dict=self._route_lane_group_dict,
+                )
 
         assert self._route_lane_group_dict is not None and self._route_lane_dict is not None, (
             "Route lane dicts not initialized."

@@ -19,9 +19,6 @@
 # exp
 exp
 
-# data
-dataset
-
 # lsf
 *.bsub
 
