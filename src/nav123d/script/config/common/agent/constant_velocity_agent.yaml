@@ -1,4 +1,4 @@
-_target_: nav123d.agents.ego_status_mlp_agent.EgoStatusMLPAgent
+_target_: nav123d.agents.constant_velocity_agent.ConstantVelocityAgent
 _convert_: 'all'
 
 trajectory_sampling:
@@ -6,6 +6,3 @@ trajectory_sampling:
   _convert_: 'all'
   time_horizon: 4
   interval_length: 0.5
-checkpoint_path: null
-hidden_layer_dim: 512
-lr: 1e-4

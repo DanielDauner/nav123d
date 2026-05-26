@@ -10,6 +10,7 @@ def sample_ego_trajectory_from_api(
     scene_api: SceneAPI,
     trajectory_sampling: TrajectorySampling,
     in_relative: bool = False,
+    interpolation_addon_s: float = 0.5,
 ) -> TrajectorySE2:
     "TODO: add docstring"
 
@@ -21,7 +22,8 @@ def sample_ego_trajectory_from_api(
     timestamps_ = []
     for ego_state_se3 in scene_api.get_modality_between_timestamps(
         start_timestamp=initial_ego_state_se3.timestamp.time_us,
-        end_timestamp=initial_ego_state_se3.timestamp.time_us + int(trajectory_sampling.time_horizon * 1e6),
+        end_timestamp=initial_ego_state_se3.timestamp.time_us
+        + int((trajectory_sampling.time_horizon + interpolation_addon_s) * 1e6),
         modality_type="ego_state_se3",
         inclusive="both",
     ):

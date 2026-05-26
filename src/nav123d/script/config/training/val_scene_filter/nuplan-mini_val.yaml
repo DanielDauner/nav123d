@@ -1,3 +1,4 @@
+# @package val_scene_filter.nuplan_mini_val
 _target_: py123d.api.scene.scene_filter.SceneFilter
 _convert_: 'all'
 
@@ -15,16 +16,16 @@ log_version: null
 
 scene_uuids: null
 target_iteration_duration_s: null
-future_duration_s: null
-history_duration_s: null
-timestamp_threshold_s: null
+future_duration_s: 4.0
+history_duration_s: 0.0
+timestamp_threshold_s: 4.0
 target_iteration_stride: null
 future_num_iterations: null
 history_num_iterations: null
 iteration_threshold: null
-required_scene_modalities: null
+required_scene_modalities: ["ego_state_se3", "lidar.lidar_merged", "camera:all"]
 
 num_chunks: null
 chunk_idx: null
 max_num_scenes: null
-shuffle: False
+shuffle: True

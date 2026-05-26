@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -6,20 +6,16 @@ import numpy.typing as npt
 import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
-from nuplan.common.actor_state.oriented_box import OrientedBox
-from nuplan.common.actor_state.state_representation import StateSE2
-from nuplan.common.maps.abstract_map import SemanticMapLayer
-from PIL import ImageColor
+from py123d.geometry import BoundingBoxSE2
+from py123d.visualization.color.color import TAB_10
+from py123d.visualization.color.default import BOX_DETECTION_CONFIG, CENTERLINE_CONFIG, MAP_SURFACE_CONFIG
 
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
-from nav123d.agents.transfuser.transfuser_features import BoundingBox2DIndex
-from nav123d.visualization.config import AGENT_CONFIG, MAP_LAYER_CONFIG
 
 
 class TransfuserCallback(pl.Callback):
     """Visualization Callback for TransFuser during training."""
 
-    # FIXME:
     def __init__(
         self,
         config: TransfuserConfig,
@@ -139,6 +135,11 @@ class TransfuserCallback(pl.Callback):
         return vutils.make_grid(plots, normalize=False, nrow=self._num_rows)
 
 
+# Ground-truth vs prediction palette (py123d tab10).
+_GT_RGB: Tuple[int, int, int] = TAB_10[2].rgb  # green
+_PRED_RGB: Tuple[int, int, int] = TAB_10[3].rgb  # red
+
+
 def dict_to_device(dict: Dict[str, torch.Tensor], device: Union[torch.device, str]) -> Dict[str, torch.Tensor]:
     """
     Helper function to move tensors from dictionary to device.
@@ -153,7 +154,7 @@ def dict_to_device(dict: Dict[str, torch.Tensor], device: Union[torch.device, st
 
 def semantic_map_to_rgb(semantic_map: npt.NDArray[np.int64], config: TransfuserConfig) -> npt.NDArray[np.uint8]:
     """
-    Convert semantic map to RGB image.
+    Convert semantic map to RGB image using the py123d color palette.
     :param semantic_map: numpy array of segmentation map (multi-channel)
     :param config: global config dataclass of TransFuser
     :return: RGB image as numpy array
@@ -163,17 +164,17 @@ def semantic_map_to_rgb(semantic_map: npt.NDArray[np.int64], config: TransfuserC
     rgb_map = np.ones((height, width, 3), dtype=np.uint8) * 255
 
     for label in range(1, config.num_bev_classes):
-        if config.bev_semantic_classes[label][0] == "linestring":
-            hex_color = MAP_LAYER_CONFIG[SemanticMapLayer.BASELINE_PATHS]["line_color"]
-        else:
-            layer = config.bev_semantic_classes[label][-1][0]  # take color of first element
-            hex_color = (
-                AGENT_CONFIG[layer]["fill_color"]
-                if layer in AGENT_CONFIG.keys()
-                else MAP_LAYER_CONFIG[layer]["fill_color"]
-            )
+        entity_type, layers = config.bev_semantic_classes[label]
+        first_layer = layers[0]  # take color of first element
 
-        rgb_map[semantic_map == label] = ImageColor.getcolor(hex_color, "RGB")
+        if entity_type == "linestring":
+            color = CENTERLINE_CONFIG.line_color
+        elif first_layer in BOX_DETECTION_CONFIG:
+            color = BOX_DETECTION_CONFIG[first_layer].fill_color
+        else:
+            color = MAP_SURFACE_CONFIG[first_layer].fill_color
+
+        rgb_map[semantic_map == label] = color.rgb
     return rgb_map[::-1, ::-1]  # type: ignore
 
 
@@ -188,16 +189,14 @@ def lidar_map_to_rgb(
     """
     Converts lidar histogram map with predictions and targets to RGB.
     :param lidar_map: lidar histogram raster
-    :param agent_states: target agent bounding box states
-    :param pred_agent_states: predicted agent bounding box states
+    :param agent_states: target agent bounding box states (BoundingBoxSE2Index layout)
+    :param pred_agent_states: predicted agent bounding box states (BoundingBoxSE2Index layout)
     :param trajectory: target trajectory of human operator
     :param pred_trajectory: predicted trajectory of agent
     :param config: global config dataclass of TransFuser
     :return: RGB image for training visualization
     """
-    gt_color, pred_color = (0, 255, 0), (255, 0, 0)
     point_size = 4
-
     height, width = lidar_map.shape[:2]
 
     def coords_to_pixel(coords):
@@ -209,20 +208,15 @@ def lidar_map_to_rgb(
     rgb_map = (lidar_map * 255).astype(np.uint8)
     rgb_map = 255 - rgb_map[..., None].repeat(3, axis=-1)
 
-    for color, agent_state_array in zip([gt_color, pred_color], [agent_states, pred_agent_states]):
+    for color, agent_state_array in zip([_GT_RGB, _PRED_RGB], [agent_states, pred_agent_states]):
         for agent_state in agent_state_array:
-            agent_box = OrientedBox(
-                StateSE2(*agent_state[BoundingBox2DIndex.STATE_SE2]),
-                agent_state[BoundingBox2DIndex.LENGTH],
-                agent_state[BoundingBox2DIndex.WIDTH],
-                1.0,
-            )
-            exterior = np.array(agent_box.geometry.exterior.coords).reshape((-1, 1, 2))
+            agent_box = BoundingBoxSE2.from_array(agent_state.astype(np.float64))
+            exterior = agent_box.corners_array.reshape((-1, 1, 2))
             exterior = coords_to_pixel(exterior)
             exterior = np.flip(exterior, axis=-1)
             cv2.polylines(rgb_map, [exterior], isClosed=True, color=color, thickness=2)
 
-    for color, traj in zip([gt_color, pred_color], [trajectory, pred_trajectory]):
+    for color, traj in zip([_GT_RGB, _PRED_RGB], [trajectory, pred_trajectory]):
         trajectory_indices = coords_to_pixel(traj[:, :2])
         for x, y in trajectory_indices:
             cv2.circle(rgb_map, (y, x), point_size, color, -1)  # -1 fills the circle

@@ -12,18 +12,19 @@ hydra:
 
 defaults:
   - default_common
+  - default_experiment
   - agent: ego_status_mlp_agent
+  - train_scene_filter: [nuplan-mini_train]
+  - val_scene_filter: [nuplan-mini_val]
   - _self_
 
-train_scene_filters:
-  - nuplan-mini_train
+experiment_name: training_ego_status_mlp
 
-val_scene_filters:
-  - nuplan-mini_val
-
-cache_path: ${oc.env:NAVSIM_EXP_ROOT}/training_cache
-use_cache_without_dataset: false # load the training samples from the cache. scene-filter will be ignored
+cache_path: ${oc.env:PY123D_EXP_ROOT}/training_cache
+use_cache_without_dataset: false  # load the training samples from the cache. scene-filter will be ignored
 force_cache_computation: true
+train_logs: null  # optional list of log names used only when use_cache_without_dataset is true
+val_logs: null    # optional list of log names used only when use_cache_without_dataset is true
 seed: 0
 
 dataloader:

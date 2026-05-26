@@ -6,6 +6,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
 from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilder, BaseTorchAgent
+from nav123d.agents.transfuser.transfuser_callback import TransfuserCallback
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.transfuser.transfuser_features import TransfuserFeatureBuilder, TransfuserTargetBuilder
 from nav123d.agents.transfuser.transfuser_loss import transfuser_loss
@@ -90,5 +91,5 @@ class TransfuserAgent(BaseTorchAgent):
 
     def get_training_callbacks(self) -> List[pl.Callback]:
         """Inherited, see superclass."""
-        # return [TransfuserCallback(self._config)] # FIXME:
-        return []
+        return [TransfuserCallback(self._config)]  # FIXME:
+        # return []

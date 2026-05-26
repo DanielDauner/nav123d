@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
             log_names=cfg.val_logs,
         )
     else:
-        executor = build_executor(cfg.executor)
+        executor = build_executor(cfg)
         train_data, val_data = build_datasets(cfg, torch_agent, executor)
 
     logger.info("Building Datasets")
@@ -85,13 +85,13 @@ def build_datasets(
     # 1. Build training and validation scenes using scene builder and filter from hydra modules.
     scene_builder = build_scene_builder(cfg.scene_builder)
     train_scenes: List[SceneAPI] = []
-    for _train_scene_filter_cfg in cfg.train_scene_filters:
+    for _train_scene_filter_cfg in cfg.train_scene_filter.values():
         _train_scene_filter = build_scene_filter(_train_scene_filter_cfg)
         _train_scenes = scene_builder.get_scenes(filter=_train_scene_filter, executor=executor)
         train_scenes.extend(_train_scenes)
 
     val_scenes: List[SceneAPI] = []
-    for _val_scene_filter_cfg in cfg.val_scene_filters:
+    for _val_scene_filter_cfg in cfg.val_scene_filter.values():
         _val_scene_filter = build_scene_filter(_val_scene_filter_cfg)
         _val_scenes = scene_builder.get_scenes(filter=_val_scene_filter, executor=executor)
         val_scenes.extend(_val_scenes)

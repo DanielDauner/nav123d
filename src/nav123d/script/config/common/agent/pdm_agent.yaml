@@ -1,0 +1,26 @@
+_target_: nav123d.agents.pdm.pdm_agent.PDMAgent
+_convert_: 'all'
+
+trajectory_sampling:
+  _target_: nav123d.geometry.trajectory.TrajectorySampling
+  _convert_: 'all'
+  num_poses: 80
+  interval_length: 0.1
+proposal_sampling:
+  _target_: nav123d.geometry.trajectory.TrajectorySampling
+  _convert_: 'all'
+  num_poses: 40
+  interval_length: 0.1
+idm_policies:
+  _target_: nav123d.agents.pdm.proposal.batch_idm_policy.BatchIDMPolicy
+  _convert_: 'all'
+  fallback_target_velocity: 15.0
+  speed_limit_fraction: [0.2, 0.4, 0.6, 0.8, 1.0]
+  min_gap_to_lead_agent: 1.0
+  headway_time: 1.5
+  accel_max: 1.5
+  decel_max: 3.0
+  acceleration_exponent: 10
+lateral_offsets: [-1, 1]
+map_radius: 200
+route_correction: true

@@ -1,3 +1,4 @@
+# @package train_scene_filter.nuplan_mini_train
 _target_: py123d.api.scene.scene_filter.SceneFilter
 _convert_: 'all'
 
@@ -16,8 +17,8 @@ log_version: null
 scene_uuids: null
 target_iteration_duration_s: null
 future_duration_s: 4.0
-history_duration_s: null
-timestamp_threshold_s: null
+history_duration_s: 0.0
+timestamp_threshold_s: 4.0
 target_iteration_stride: null
 future_num_iterations: null
 history_num_iterations: null
