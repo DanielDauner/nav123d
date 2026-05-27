@@ -18,9 +18,9 @@ defaults:
   - val_scene_filter: [nuplan-mini_val]
   - _self_
 
-experiment_name: training_ego_status_mlp
+experiment_name: training_agent
 
-cache_path: ${oc.env:PY123D_EXP_ROOT}/training_cache
+cache_path: null #${oc.env:PY123D_EXP_ROOT}/training_cache
 use_cache_without_dataset: false  # load the training samples from the cache. scene-filter will be ignored
 force_cache_computation: true
 train_logs: null  # optional list of log names used only when use_cache_without_dataset is true
@@ -30,9 +30,9 @@ seed: 0
 dataloader:
   params:
     batch_size: 32  # number of samples per batch
-    num_workers: 4  # number of workers for data loading
+    num_workers: 16  # number of workers for data loading
     pin_memory: true  # pin memory for faster GPU transfer
-    prefetch_factor: 2  # number of samples loaded in advance by each worker
+    prefetch_factor: null  # number of samples loaded in advance by each worker
 
 trainer:
   params:

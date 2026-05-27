@@ -18,7 +18,7 @@ scene_uuids: null
 target_iteration_duration_s: null
 future_duration_s: 4.0
 history_duration_s: 0.0
-timestamp_threshold_s: 4.0
+timestamp_threshold_s: 0.1
 target_iteration_stride: null
 future_num_iterations: null
 history_num_iterations: null
