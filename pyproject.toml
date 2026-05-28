@@ -25,7 +25,7 @@ dependencies = [
 
 [project.scripts]
 nav123d-training = "nav123d.script.run_training:main"
-nav123dnav-evaluation = "nav123d.script.run_evaluation:main"
+nav123d-evaluation = "nav123d.script.run_evaluation:main"
 
 [project.optional-dependencies]
 dev = [

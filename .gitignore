@@ -25,3 +25,10 @@ exp
 # running scripts
 scripts_dev/*
 visualization/*
+
+
+# Sphinx documentation
+docs/_build/
+docs/build/
+_build/
+.doctrees/
