@@ -15,7 +15,11 @@ defaults:
   - default_experiment
   - agent: ego_status_mlp_agent
   - test_scene_filter: [nuplan-mini_test]
+  - metrics: [pdm_metric, displacement_metric]
   - _self_
 
+experiment_name: evaluation_agent
 
-metrics:
+# Results output (written into ${output_dir})
+output_format: csv          # csv | parquet
+results_file_stem: results

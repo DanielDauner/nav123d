@@ -1,136 +1,101 @@
-# logger = logging.getLogger(__name__)
-
-# CONFIG_PATH = "config/pdm_scoring"
-# CONFIG_NAME = "default_run_pdm_score"
-from typing import Dict, List, Tuple
+import logging
+from functools import partial
+from pathlib import Path
+from typing import Dict, List
 
 import hydra
 import pandas as pd
+from hydra.utils import instantiate
 from omegaconf import DictConfig
-from py123d.api import SceneAPI, SceneFilter, get_filtered_scenes
-from py123d.common.execution import RayExecutor, executor_map_chunked_list
+from py123d.api import SceneAPI
+from py123d.common.execution import Executor, executor_map_chunked_list
+from py123d.script.builders.execution_builder import build_executor
+from py123d.script.builders.scene_builder_builder import build_scene_builder
+from py123d.script.builders.scene_filter_builder import build_scene_filter
+from py123d.script.builders.utils.utils_type import validate_type
 
 from nav123d.agents.base_agent import BaseAgent
-from nav123d.agents.constant_velocity_agent import ConstantVelocityAgent
-from nav123d.agents.ego_status_mlp_agent import EgoStatusMLPAgent
-from nav123d.agents.log_replay_agent import LogReplayAgent
-from nav123d.agents.pdm.pdm_agent import PDMAgent
-from nav123d.agents.transfuser.transfuser_agent import TransfuserAgent
-from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.api import scene_api_to_agent_api
 from nav123d.geometry.trajectory import TrajectorySE2
-from nav123d.metrics.displacement_metric import DisplacementMetric
-from nav123d.metrics.pdm_metric import PDMMetric
+from nav123d.script.builders.metric_builder import build_metrics
 
-EGO_MLP_SEED = 0
-TRANSFUSER_SEED = 0
-LTF_SEED = 0
+logger = logging.getLogger(__name__)
 
-AGENT_NAME = "tf"
-
-
-def _build_agent(name: str) -> BaseAgent:
-    if name == "cv":
-        return ConstantVelocityAgent()
-    if name == "lr":
-        return LogReplayAgent()
-    if name == "es":
-        return EgoStatusMLPAgent(
-            checkpoint_path=f"/home/daniel/Downloads/ego_status_mlp_seed_{EGO_MLP_SEED}.ckpt",
-            hidden_layer_dim=512,
-            lr=1e-4,
-        )
-    if name == "tf":
-        return TransfuserAgent(
-            checkpoint_path=f"/home/daniel/Downloads/transfuser_seed_{TRANSFUSER_SEED}.ckpt",
-            config=TransfuserConfig(latent=False),
-            lr=1e-4,
-        )
-    if name == "ltf":
-        return TransfuserAgent(
-            checkpoint_path=f"/home/daniel/Downloads/ltf_seed_{LTF_SEED}.ckpt",
-            config=TransfuserConfig(latent=True),
-            lr=1e-4,
-        )
-    if name == "pdm":
-        return PDMAgent(route_correction=False)
-    raise ValueError(f"Unknown agent name: {name}")
-
-
-CONFIG_PATH = "config/training"
-CONFIG_NAME = "default_training"
+CONFIG_PATH = "config/evaluation"
+CONFIG_NAME = "default_evaluation"
 
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig) -> None:
-    # 1. Load scene and agent trajectory.
-    scene_filter = SceneFilter(
-        datasets=["nuplan-mini"],
-        # datasets=["av2-sensor"],
-        # datasets=["carla"],
-        # split_names=["av2-sensor_train"],
-        log_names=None,
-        # target_iteration_duration_s=0.1,  # 10Hz iteration frequency
-        future_duration_s=8.0,  # Look up to 8 seconds into the future.
-        history_duration_s=0.5,  # Look up to 0.5 seconds into the past.
-        timestamp_threshold_s=0.1,  # Allow for up to 50ms timestamp misalignment between modalities.
-        required_scene_modalities=["ego_state_se3", "lidar.lidar_merged"],
-        shuffle=False,
-    )
+    """
+    Main entrypoint for evaluating an agent.
+    :param cfg: omegaconf dictionary
+    """
 
-    # executor = ThreadPoolExecutor()
-    executor = RayExecutor()
+    logger.info(f"Path where all results are stored: {cfg.output_dir}")
 
-    scenes = get_filtered_scenes(scene_filter)
-    scene_dict = {scene.scene_uuid: scene for scene in scenes}
+    logger.info("Building Executor and Scene Builder")
+    executor: Executor = build_executor(cfg)
+    scene_builder = build_scene_builder(cfg.scene_builder)
 
-    trajectories_list: List[Tuple[str, TrajectorySE2]] = executor_map_chunked_list(
+    logger.info("Building Scenes")
+    scenes: List[SceneAPI] = []
+    for scene_filter_cfg in cfg.test_scene_filter.values():
+        scene_filter = build_scene_filter(scene_filter_cfg)
+        scenes.extend(scene_builder.get_scenes(filter=scene_filter, executor=executor))
+    logger.info("Num evaluation scenes: %d", len(scenes))
+
+    logger.info("Running Evaluation")
+    worker = partial(_evaluate_scenes, agent_cfg=cfg.agent, metrics_cfg=cfg.metrics)
+    results: List[Dict[str, object]] = executor_map_chunked_list(
         executor,
-        _agent_inference,
+        worker,
         scenes,
-        name="Agent Inference",
+        name="Evaluation",
     )
 
-    scene_traj_pairs = [(scene_dict[scene_uuid], trajectory) for scene_uuid, trajectory in trajectories_list]
+    _save_results(results, cfg)
 
-    metrics = executor_map_chunked_list(
-        executor,
-        _run_metrics,
-        scene_traj_pairs,
-        name="Agent Inference",
-    )
 
-    df = pd.DataFrame(metrics)
+def _evaluate_scenes(
+    scenes: List[SceneAPI],
+    agent_cfg: DictConfig,
+    metrics_cfg: DictConfig,
+) -> List[Dict[str, object]]:
+    """Run agent inference and all metrics for a chunk of scenes. Built per worker."""
+    agent: BaseAgent = instantiate(agent_cfg)
+    validate_type(agent, BaseAgent)
+    agent.initialize()
+    metrics = build_metrics(metrics_cfg)
+    observation_type = agent.get_observation_type()
+
+    results: List[Dict[str, object]] = []
+    for scene in scenes:
+        agent_api = scene_api_to_agent_api(scene, observation_type=observation_type)
+        trajectory = agent.compute_trajectory(agent_api)
+        assert isinstance(trajectory, TrajectorySE2), "Agent trajectory must be of type TrajectorySE2."
+        result: Dict[str, object] = {"scene_uuid": scene.scene_uuid}
+        for metric in metrics:
+            result.update(metric.compute_metric(scene, agent_trajectory=trajectory))
+        results.append(result)
+    return results
+
+
+def _save_results(results: List[Dict[str, object]], cfg: DictConfig) -> None:
+    df = pd.DataFrame(results)
     numeric_cols = df.select_dtypes(include="number").columns
     average_row: Dict[str, object] = {"scene_uuid": "average"}
     average_row.update({col: df[col].mean() for col in numeric_cols})
     df = pd.concat([df, pd.DataFrame([average_row])], ignore_index=True)
-    df.to_csv(f"results_{AGENT_NAME}.csv", index=False)
 
-
-def _agent_inference(scenes: List[SceneAPI]) -> List[Tuple[str, TrajectorySE2]]:
-    agent = _build_agent(AGENT_NAME)
-    agent.initialize()
-    trajectories = []
-    for scene in scenes:
-        scene_uuid = scene.scene_uuid
-        agent_api = scene_api_to_agent_api(scene, observation_type=agent.get_observation_type())
-        trajectory = agent.compute_trajectory(agent_api)
-        assert isinstance(trajectory, TrajectorySE2), "Agent trajectory must be of type TrajectorySE2."
-        trajectories.append((scene_uuid, trajectory))
-    return trajectories
-
-
-def _run_metrics(scene_traj_pairs: List[Tuple[SceneAPI, TrajectorySE2]]) -> List[Dict[str, List[float]]]:
-    metrics = [PDMMetric(), DisplacementMetric()]
-    results = []
-    for scene, trajectory in scene_traj_pairs:
-        result = {"scene_uuid": scene.scene_uuid}
-        for metric in metrics:
-            score_dict = metric.compute_metric(scene, agent_trajectory=trajectory)
-            result.update(score_dict)
-        results.append(result)
-    return results
+    output_path = Path(cfg.output_dir) / f"{cfg.results_file_stem}.{cfg.output_format}"
+    if cfg.output_format == "csv":
+        df.to_csv(output_path, index=False)
+    elif cfg.output_format == "parquet":
+        df.to_parquet(output_path, index=False)
+    else:
+        raise ValueError(f"Unsupported output_format: {cfg.output_format}")
+    logger.info(f"Saved results to {output_path}")
 
 
 if __name__ == "__main__":
