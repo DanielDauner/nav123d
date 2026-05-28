@@ -34,6 +34,18 @@ See the [installation docs](docs/installation.md) for dataset setup and environm
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Changelog
+
+<details open>
+<summary><b>v0.1.0</b> (2026-05-28)</summary>
+
+- Initial release of the package and documentation.
+- Baseline agents (constant-velocity, ego-status MLP, PDM, TransFuser) with training and evaluation entry points.
+
+</details>
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Citation
 
 All assets and code in this repository are under the [Apache 2.0 license](./LICENSE) unless specified otherwise.
