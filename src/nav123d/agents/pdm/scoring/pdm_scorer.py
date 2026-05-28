@@ -28,8 +28,40 @@ from nav123d.agents.pdm.utils.pdm_enums import (
     StateIndex,
     WeightedMetricIndex,
 )
-from nav123d.common.dataclasses import PDMResults
 from nav123d.geometry.trajectory import TrajectorySampling
+
+
+@dataclass
+class PDMResults:
+    """Helper dataclass to record PDM results."""
+
+    no_at_fault_collisions: float
+    drivable_area_compliance: float
+    driving_direction_compliance: float
+    traffic_light_compliance: float
+
+    ego_progress: float
+    time_to_collision_within_bound: float
+    comfort: float
+
+    pdm_score: float
+
+    @classmethod
+    def get_empty_results(cls) -> PDMResults:
+        """
+        Returns an instance of the class where all values are NaN.
+        :return: empty PDM results dataclass.
+        """
+        return PDMResults(
+            no_at_fault_collisions=np.nan,
+            drivable_area_compliance=np.nan,
+            driving_direction_compliance=np.nan,
+            traffic_light_compliance=np.nan,
+            ego_progress=np.nan,
+            time_to_collision_within_bound=np.nan,
+            comfort=np.nan,
+            pdm_score=np.nan,
+        )
 
 
 @dataclass
