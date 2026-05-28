@@ -14,7 +14,7 @@ from nav123d.geometry.trajectory import TrajectorySampling
 
 
 class EgoStatusMLPAgent(BaseTorchAgent):
-    """EgoStatMLP agent interface."""
+    """EgoStatusMLP agent interface."""
 
     def __init__(
         self,
@@ -23,8 +23,8 @@ class EgoStatusMLPAgent(BaseTorchAgent):
         checkpoint_path: Optional[str] = None,
         trajectory_sampling: TrajectorySampling = TrajectorySampling(time_horizon=4, interval_length=0.5),
     ):
-        """
-        Initializes the agent interface for EgoStatusMLP.
+        """Initializes the agent interface for EgoStatusMLP.
+
         :param hidden_layer_dim: dimensionality of hidden layer.
         :param lr: learning rate during training.
         :param checkpoint_path: optional checkpoint path as string, defaults to None
@@ -120,11 +120,11 @@ class EgoStatusFeatureBuilder(BaseFeatureBuilder):
 
 
 class TrajectoryTargetBuilder(BaseTargetBuilder):
-    """Input feature builder of EgoStatusMLP."""
+    """Trajectory target builder of EgoStatusMLP."""
 
     def __init__(self, trajectory_sampling: TrajectorySampling):
-        """
-        Initializes the target builder.
+        """Initializes the target builder.
+
         :param trajectory_sampling: trajectory sampling specification.
         """
 

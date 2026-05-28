@@ -25,23 +25,19 @@ class BaseTorchAgent(torch.nn.Module, BaseAgent):
 
     @abc.abstractmethod
     def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        """
-        Forward pass of the agent.
+        """Forward pass of the agent.
+
         :param features: Dictionary of features.
         :return: Dictionary of predictions.
         """
 
     @abc.abstractmethod
     def get_feature_builders(self) -> List[BaseFeatureBuilder]:
-        """
-        :return: List of target builders.
-        """
+        """:return: List of feature builders run on the agent input at inference and training time."""
 
     @abc.abstractmethod
     def get_target_builders(self) -> List[BaseTargetBuilder]:
-        """
-        :return: List of feature builders.
-        """
+        """:return: List of target builders run on the ground-truth scene during training."""
 
     @abc.abstractmethod
     def compute_loss(
@@ -50,9 +46,7 @@ class BaseTorchAgent(torch.nn.Module, BaseAgent):
         targets: Dict[str, torch.Tensor],
         predictions: Dict[str, torch.Tensor],
     ) -> torch.Tensor:
-        """
-        Computes the loss used for backpropagation based on the features, targets and model predictions.
-        """
+        """Computes the loss for backpropagation from features, targets and model predictions."""
 
     @abc.abstractmethod
     def get_optimizers(
@@ -61,17 +55,13 @@ class BaseTorchAgent(torch.nn.Module, BaseAgent):
         torch.optim.Optimizer,
         Dict[str, Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]],
     ]:
-        """
-        Returns the optimizers that are used by thy pytorch-lightning trainer.
+        """Returns the optimizers used by the lightning trainer.
+
         Has to be either a single optimizer or a dict of optimizer and lr scheduler.
         """
 
     def compute_trajectory(self, agent_api: AgentAPI) -> Trajectory:
-        """
-        Computes the ego vehicle trajectory.
-        :param current_input: Dataclass with agent inputs.
-        :return: Trajectory representing the predicted ego's position in future
-        """
+        """Inherited, see superclass."""
         self.eval()
         features: Dict[str, torch.Tensor] = {}
         # build features
@@ -96,10 +86,7 @@ class BaseTorchAgent(torch.nn.Module, BaseAgent):
         return TrajectorySE2(pose_se2_array=poses_se2_array, timestamps=timestamps)
 
     def get_training_callbacks(self) -> List[L.Callback]:
-        """
-        Returns a list of pytorch-lightning callbacks that are used during training.
-        See navsim.planning.training.callbacks for examples.
-        """
+        """Returns the lightning callbacks used during training; empty by default."""
         return []
 
 
@@ -108,33 +95,31 @@ class BaseFeatureBuilder(abc.ABC):
 
     @abc.abstractmethod
     def get_unique_name(self) -> str:
-        """
-        :return: Unique name of created feature.
-        """
+        """:return: Unique name of created feature."""
 
     @abc.abstractmethod
     def compute_features(self, agent_api: AgentAPI) -> Dict[str, Tensor]:
-        """
-        Computes features from the BaseAgentAPI object, i.e., without access to ground-truth.
+        """Computes features from the agent API, i.e., without access to ground-truth.
+
         Outputs a dictionary where each item has a unique identifier and maps to a single feature tensor.
         One FeatureBuilder can return a dict with multiple FeatureTensors.
         """
 
 
 class BaseTargetBuilder(abc.ABC):
+    """Abstract class of target builder for agent training."""
+
     def __init__(self):
         pass
 
     @abc.abstractmethod
     def get_unique_name(self) -> str:
-        """
-        :return: Unique name of created target.
-        """
+        """:return: Unique name of created target."""
 
     @abc.abstractmethod
     def compute_targets(self, scene_api: SceneAPI) -> Dict[str, Tensor]:
-        """
-        Computes targets from the Scene object, i.e., with access to ground-truth.
+        """Computes targets from the Scene object, i.e., with access to ground-truth.
+
         Outputs a dictionary where each item has a unique identifier and maps to a single target tensor.
         One TargetBuilder can return a dict with multiple TargetTensors.
         """

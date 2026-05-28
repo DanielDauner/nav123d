@@ -45,8 +45,8 @@ def _extract_ego_acceleration(
     poly_order: int = 2,
     window_length: int = 8,
 ) -> npt.NDArray[np.float64]:
-    """
-    Extract acceleration of ego pose in simulation history over batch-dim
+    """Extract acceleration of ego pose in simulation history over batch-dim.
+
     :param states: array representation of ego state values
     :param acceleration_coordinate: string of axis to extract
     :param metadata: metadata of vehicle
@@ -94,8 +94,8 @@ def _extract_ego_jerk(
     poly_order: int = 2,
     window_length: int = 15,
 ) -> npt.NDArray[np.float32]:
-    """
-    Extract jerk of ego pose in simulation history over batch-dim
+    """Extract jerk of ego pose in simulation history over batch-dim.
+
     :param states: array representation of ego state values
     :param acceleration_coordinate: string of axis to extract
     :param time_steps_s: time steps [s] of time dim
@@ -131,13 +131,13 @@ def _extract_ego_yaw_rate(
     decimals: int = 8,
     window_length: int = 15,
 ) -> npt.NDArray[np.float32]:
-    """
-    Extract yaw-rate of simulation history over batch-dim
+    """Extract yaw-rate of simulation history over batch-dim.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param deriv_order: order of derivative, defaults to 1
     :param poly_order: polynomial order, defaults to 2
-    :param decimals:  decimal precision, defaults to 8
+    :param decimals: decimal precision, defaults to 8
     :param window_length: window size for extraction, defaults to 15
     :return: array containing ego's yaw rate
     """
@@ -153,12 +153,14 @@ def _extract_ego_yaw_rate(
 
 
 def _phase_unwrap(headings: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-    """
+    """Phase-unwraps heading angles so successive differences stay within pi radians.
+
     Returns an array of heading angles equal mod 2 pi to the input heading angles,
     and such that the difference between successive output angles is less than or
-    equal to pi radians in absolute value
+    equal to pi radians in absolute value.
+
     :param headings: An array of headings (radians)
-    :return The phase-unwrapped equivalent headings.
+    :return: The phase-unwrapped equivalent headings.
     """
     # There are some jumps in the heading (e.g. from -np.pi to +np.pi) which causes approximation of yaw to be very large.
     # We want unwrapped[j] = headings[j] - 2*pi*adjustments[j] for some integer-valued adjustments making the absolute value of
@@ -181,10 +183,12 @@ def _approximate_derivatives(
     deriv_order: int = 1,
     axis: int = -1,
 ) -> npt.NDArray[np.float32]:
-    """
+    """Approximates the n-th derivative of the function interpolating equally-spaced (x, y) points.
+
     Given two equal-length sequences y and x, compute an approximation to the n-th
     derivative of some function interpolating the (x, y) data points, and return its
-    values at the x's.  We assume the x's are increasing and equally-spaced.
+    values at the x's. We assume the x's are increasing and equally-spaced.
+
     :param y: The dependent variable (say of length n)
     :param x: The independent variable (must have the same length n).  Must be strictly
         increasing and equally-spaced.
@@ -194,7 +198,7 @@ def _approximate_derivatives(
         be less than the window_length
     :param deriv_order: The order of derivative to compute (default 1)
     :param axis: The axis of the array x along which the filter is to be applied. Default is -1.
-    :return Derivatives.
+    :return: Derivatives.
     """
     window_length = min(window_length, len(x))
 
@@ -222,12 +226,12 @@ def _within_bound(
     min_bound: Optional[float] = None,
     max_bound: Optional[float] = None,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Determines wether values in batch-dim are within bounds.
+    """Determines whether values in the batch-dim are within bounds.
+
     :param metric: metric values
     :param min_bound: minimum bound, defaults to None
     :param max_bound: maximum bound, defaults to None
-    :return: array of booleans wether metric values are within bounds
+    :return: array of booleans whether metric values are within bounds
     """
     min_bound = min_bound if min_bound else float(-np.inf)
     max_bound = max_bound if max_bound else float(np.inf)
@@ -241,8 +245,8 @@ def _compute_lon_acceleration(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute longitudinal acceleration over batch-dim of simulated proposals
+    """Compute longitudinal acceleration over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -257,8 +261,8 @@ def _compute_lat_acceleration(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute lateral acceleration over batch-dim of simulated proposals
+    """Compute lateral acceleration over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -273,8 +277,8 @@ def _compute_jerk_metric(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute absolute jerk over batch-dim of simulated proposals
+    """Compute absolute jerk over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -294,8 +298,8 @@ def _compute_lon_jerk_metric(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute longitudinal jerk over batch-dim of simulated proposals
+    """Compute longitudinal jerk over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -315,8 +319,8 @@ def _compute_yaw_accel(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute acceleration of yaw-angle over batch-dim of simulated proposals
+    """Compute acceleration of yaw-angle over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -331,8 +335,8 @@ def _compute_yaw_rate(
     time_steps_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Compute velocity of yaw-angle over batch-dim of simulated proposals
+    """Compute velocity of yaw-angle over batch-dim of simulated proposals.
+
     :param states: array representation of ego state values
     :param time_steps_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
@@ -347,12 +351,12 @@ def ego_is_comfortable(
     time_point_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Accumulates all within-bound comfortability metrics
+    """Accumulates all within-bound comfort metrics into a per-proposal, per-metric array.
+
     :param states: array representation of ego state values
     :param time_point_s: time steps [s] of time dim
     :param metadata: metadata of vehicle
-    :return: _description_
+    :return: boolean array (n_batch, n_metrics) flagging which comfort metrics are within bound
     """
     n_batch, n_time, n_states = states.shape
     assert n_time == len(time_point_s)
@@ -376,8 +380,8 @@ def ego_is_comfortable(
 def calculate_rms_difference(
     feature_values: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
-    """
-    Calculate RMS difference between consecutive frames for a given feature.
+    """Calculate RMS difference between consecutive frames for a given feature.
+
     :param feature_values: Array of shape (n_batch, n_time) containing feature values for each time step.
     :return: RMS differences for each trajectory in the batch.
     """
@@ -406,8 +410,8 @@ def extract_features(
     time_point_s: npt.NDArray[np.float64],
     metadata: EgoStateSE3Metadata,
 ) -> dict:
-    """
-    Extract features needed for Extended Comfort evaluation.
+    """Extract features needed for Extended Comfort evaluation.
+
     :param states: Array of ego states (n_batch, n_time, n_features).
     :param time_point_s: Array of time steps in seconds.
     :param metadata: metadata of vehicle

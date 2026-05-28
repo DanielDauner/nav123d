@@ -43,13 +43,14 @@ class PDMAgent(BaseAgent):
         map_radius: float = 200,
         route_correction: bool = True,
     ):
-        """
-        Constructor for PDMClosedAgent
+        """Constructor for PDMAgent.
+
         :param trajectory_sampling: Sampling parameters for final trajectory
         :param proposal_sampling: Sampling parameters for proposals
         :param idm_policies: BatchIDMPolicy class
         :param lateral_offsets: centerline offsets for proposals (optional)
         :param map_radius: radius around ego to consider
+        :param route_correction: whether to correct the route lane groups on the first iteration
         """
         assert trajectory_sampling.interval_length == proposal_sampling.interval_length, (
             "PDMClosedPlanner: Proposals and Trajectory must have equal interval length!"
@@ -185,9 +186,9 @@ class PDMAgent(BaseAgent):
         return trajectory
 
     def _update_proposal_manager(self, ego_state_se2: EgoStateSE2) -> None:
-        """
-        Updates or initializes PDMProposalManager class
-        :param ego_state: state of ego-vehicle
+        """Updates or initializes the PDMProposalManager.
+
+        :param ego_state_se2: state of ego-vehicle
         """
         assert self._route_lane_dict is not None and self._drivable_area_map is not None, (
             "Planner not initialized properly."

@@ -22,8 +22,8 @@ class PDMEmergencyBrake:
         min_long_accel: float = -4.05,
         infraction: str = "collision",
     ):
-        """
-        Constructor for PDMEmergencyBrake
+        """Constructor for PDMEmergencyBrake.
+
         :param trajectory_sampling: Sampling parameters for final trajectory
         :param time_to_infraction_threshold: threshold for applying brake, defaults to 2.0
         :param max_ego_speed: maximum speed to apply brake, defaults to 5.0
@@ -52,9 +52,9 @@ class PDMEmergencyBrake:
     def brake_if_emergency(
         self, ego_state_se2: EgoStateSE2, scores: npt.NDArray[np.float64], scorer: PDMScorer
     ) -> Optional[TrajectorySE2]:
-        """
-        Applies emergency brake only if an infraction is expected within horizon.
-        :param ego_state: state object of ego
+        """Applies emergency brake only if an infraction is expected within horizon.
+
+        :param ego_state_se2: state object of ego
         :param scores: array of proposal scores
         :param scorer: scorer class of PDM
         :return: brake trajectory or None
@@ -84,10 +84,10 @@ class PDMEmergencyBrake:
         return trajectory
 
     def _generate_trajectory(self, ego_state_se2: EgoStateSE2) -> TrajectorySE2:
-        """
-        Generates trajectory for reach zero velocity.
-        :param ego_state: state object of ego
-        :return: InterpolatedTrajectory for braking
+        """Generates a braking trajectory that decelerates ego to zero velocity.
+
+        :param ego_state_se2: state object of ego
+        :return: braking trajectory as SE2
         """
         current_time_point = ego_state_se2.timestamp
         assert ego_state_se2.dynamic_state_se2 is not None, (

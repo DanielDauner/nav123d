@@ -28,8 +28,8 @@ class TransfuserAgent(BaseTorchAgent):
         checkpoint_path: Optional[str] = None,
         trajectory_sampling: TrajectorySampling = TrajectorySampling(time_horizon=4, interval_length=0.5),
     ):
-        """
-        Initializes TransFuser agent.
+        """Initializes TransFuser agent.
+
         :param config: global config of TransFuser agent
         :param lr: learning rate during training
         :param checkpoint_path: optional path string to checkpoint, defaults to None

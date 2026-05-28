@@ -14,8 +14,8 @@ class TransfuserModel(nn.Module):
     """Torch module for Transfuser."""
 
     def __init__(self, trajectory_sampling: TrajectorySampling, config: TransfuserConfig):
-        """
-        Initializes TransFuser torch module.
+        """Initializes TransFuser torch module.
+
         :param trajectory_sampling: trajectory sampling specification.
         :param config: global config dataclass of TransFuser.
         """
@@ -132,8 +132,8 @@ class AgentHead(nn.Module):
         d_ffn: int,
         d_model: int,
     ):
-        """
-        Initializes prediction head.
+        """Initializes prediction head.
+
         :param num_agents: maximum number of agents to predict
         :param d_ffn: dimensionality of feed-forward network
         :param d_model: input dimensionality
@@ -170,8 +170,8 @@ class TrajectoryHead(nn.Module):
     """Trajectory prediction head."""
 
     def __init__(self, num_poses: int, d_ffn: int, d_model: int):
-        """
-        Initializes trajectory head.
+        """Initializes trajectory head.
+
         :param num_poses: number of (x,y,θ) poses to predict
         :param d_ffn: dimensionality of feed-forward network
         :param d_model: input dimensionality

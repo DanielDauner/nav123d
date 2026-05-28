@@ -21,3 +21,4 @@ Welcome to the official documentation for NAV123D, a toolkit for unified benchma
    :caption: Notes
 
    contributing
+   agents

@@ -9,8 +9,8 @@ from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 
 
 def transfuser_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, torch.Tensor], config: TransfuserConfig):
-    """
-    Helper function calculating complete loss of Transfuser
+    """Helper function calculating the complete loss of Transfuser.
+
     :param targets: dictionary of name tensor pairings
     :param predictions: dictionary of name tensor pairings
     :param config: global Transfuser config
@@ -30,8 +30,8 @@ def transfuser_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, tor
 
 
 def _agent_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, torch.Tensor], config: TransfuserConfig):
-    """
-    Hungarian matching loss for agent detection
+    """Hungarian matching loss for agent detection.
+
     :param targets: dictionary of name tensor pairings
     :param predictions: dictionary of name tensor pairings
     :param config: global Transfuser config
@@ -86,8 +86,8 @@ def _agent_loss(targets: Dict[str, torch.Tensor], predictions: Dict[str, torch.T
 
 @torch.no_grad()
 def _get_ce_cost(gt_valid: torch.Tensor, pred_logits: torch.Tensor) -> torch.Tensor:
-    """
-    Function to calculate cross-entropy cost for cost matrix.
+    """Function to calculate cross-entropy cost for cost matrix.
+
     :param gt_valid: tensor of binary ground-truth labels
     :param pred_logits: tensor of predicted logits of neural net
     :return: bce cost matrix as tensor
@@ -108,8 +108,8 @@ def _get_ce_cost(gt_valid: torch.Tensor, pred_logits: torch.Tensor) -> torch.Ten
 
 @torch.no_grad()
 def _get_l1_cost(gt_states: torch.Tensor, pred_states: torch.Tensor, gt_valid: torch.Tensor) -> torch.Tensor:
-    """
-    Function to calculate L1 cost for cost matrix.
+    """Function to calculate L1 cost for cost matrix.
+
     :param gt_states: tensor of ground-truth bounding boxes
     :param pred_states: tensor of predicted bounding boxes
     :param gt_valid: mask of binary ground-truth labels
@@ -124,8 +124,8 @@ def _get_l1_cost(gt_states: torch.Tensor, pred_states: torch.Tensor, gt_valid: t
 
 
 def _get_src_permutation_idx(indices):
-    """
-    Helper function to align indices after matching
+    """Helper function to align indices after matching.
+
     :param indices: matched indices
     :return: permuted indices
     """

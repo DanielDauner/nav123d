@@ -24,8 +24,8 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
     """Input feature builder for TransFuser."""
 
     def __init__(self, config: TransfuserConfig):
-        """
-        Initializes feature builder.
+        """Initializes feature builder.
+
         :param config: global config dataclass of TransFuser
         """
         self._config = config
@@ -48,8 +48,8 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
         return features
 
     def _get_camera_feature(self, agent_api: AgentAPI) -> torch.Tensor:
-        """
-        Extract stitched camera from AgentInput
+        """Extract stitched camera image from the AgentAPI.
+
         :param agent_api: input dataclass
         :return: stitched front view image as torch tensor
         """
@@ -75,8 +75,8 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
         return tensor_image
 
     def _get_lidar_feature(self, agent_api: AgentAPI) -> torch.Tensor:
-        """
-        Compute LiDAR feature as 2D histogram, according to Transfuser
+        """Compute LiDAR feature as a 2D histogram, according to Transfuser.
+
         :param agent_api: input dataclass
         :return: LiDAR histogram as torch tensors
         """
@@ -123,8 +123,8 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
         return torch.tensor(features)
 
     def _get_status_feature(self, agent_api: AgentAPI) -> torch.Tensor:
-        """
-        Extract ego status and command from AgentAPI
+        """Extract ego status and command from the AgentAPI.
+
         :param agent_api: input dataclass
         :return: ego status and command as torch tensor
         """
@@ -157,8 +157,8 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
         trajectory_sampling: TrajectorySampling,
         config: TransfuserConfig,
     ):
-        """
-        Initializes target builder.
+        """Initializes target builder.
+
         :param trajectory_sampling: trajectory sampling specification
         :param config: global config dataclass of TransFuser
         """
@@ -190,8 +190,8 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
         }
 
     def _compute_target_trajectory(self, scene_api: SceneAPI) -> torch.Tensor:
-        """
-        Extracts future trajectory in ego coordinates
+        """Extracts the future trajectory in ego coordinates.
+
         :param scene_api: input dataclass
         :return: future trajectory as torch tensor
         """
@@ -205,8 +205,8 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
     def _compute_agent_targets(
         self, bbse2_array: np.ndarray, bbse2_labels: List[DefaultBoxDetectionLabel]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Extracts 2D agent bounding boxes in ego coordinates
+        """Extracts 2D agent bounding boxes in ego coordinates.
+
         :param bbse2_array: array of bounding box values
         :param bbse2_labels: list of bounding box labels
         :return: tuple of bounding box values and labels (binary)
@@ -256,9 +256,7 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
         bbse2_array: np.ndarray,
         bbse2_labels: List[DefaultBoxDetectionLabel],
     ) -> torch.Tensor:
-        """
-        Computes BEV semantic map with map and agent information
-        """
+        """Computes the BEV semantic map combining map and agent information."""
 
         map_api = scene_api.get_map_api()
         assert map_api is not None, "Map API should be available for target computation!"
@@ -278,9 +276,9 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
     def _compute_map_polygon_mask(
         self, map_api: MapAPI, ego_state_se3: EgoStateSE3, layers: List[MapLayer]
     ) -> npt.NDArray[np.bool_]:
-        """
-        Compute binary mask given a map layer class
-        :param map_api: map interface of nuPlan
+        """Compute a binary polygon mask for the given map layers.
+
+        :param map_api: map interface
         :param ego_state_se3: ego state in SE3
         :param layers: map layers
         :return: binary mask as numpy array
@@ -308,9 +306,9 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
     def _compute_map_linestring_mask(
         self, map_api: MapAPI, ego_state_se3: EgoStateSE3, layers: List[MapLayer]
     ) -> npt.NDArray[np.bool_]:
-        """
-        Compute binary of linestring given a map layer class
-        :param map_api: map interface of nuPlan
+        """Compute a binary linestring mask for the given map layers.
+
+        :param map_api: map interface
         :param ego_state_se3: ego state in SE3
         :param layers: map layers
         :return: binary mask as numpy array
@@ -345,8 +343,8 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
         bbse2_labels: List[DefaultBoxDetectionLabel],
         layers: List[DefaultBoxDetectionLabel],
     ) -> npt.NDArray[np.bool_]:
-        """
-        Compute binary of bounding boxes in BEV space
+        """Compute a binary mask of bounding boxes in BEV space.
+
         :param bbse2_array: array of bounding boxes in SE2 (ego-relative)
         :param bbse2_labels: labels for each bounding box
         :param layers: bounding box labels to include
@@ -376,7 +374,12 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
     def _extract_relative_bounding_boxes(
         self, scene_api: SceneAPI, ego_state_se3: EgoStateSE3
     ) -> Tuple[npt.NDArray[np.float64], List[DefaultBoxDetectionLabel]]:
-        """TODO"""
+        """Extracts box detections at iteration 0 as ego-relative SE2 arrays with labels.
+
+        :param scene_api: scene interface providing ground-truth box detections
+        :param ego_state_se3: ego state used as the origin for relative coordinates
+        :return: tuple of (bounding box array, list of labels)
+        """
 
         box_detections_se3 = scene_api.get_box_detections_se3_at_iteration(0)
         assert box_detections_se3 is not None, "Box detections should be available for target computation!"
@@ -397,8 +400,8 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
 
     @staticmethod
     def _geometry_local_coords(geometry: Any, origin: PoseSE2) -> Any:
-        """
-        Transform shapely geometry in local coordinates of origin.
+        """Transform a shapely geometry into the local coordinates of the origin pose.
+
         :param geometry: shapely geometry
         :param origin: pose dataclass
         :return: shapely geometry
@@ -417,10 +420,10 @@ class TransfuserTargetBuilder(BaseTargetBuilder):
         return rotated_geometry
 
     def _coords_to_pixel(self, coords):
-        """
-        Transform local coordinates in pixel indices of BEV map
-        :param coords: _description_
-        :return: _description_
+        """Transform local coordinates into pixel indices of the BEV map.
+
+        :param coords: local (x, y) coordinates
+        :return: pixel indices as int array
         """
 
         # NOTE: remove half in backward direction

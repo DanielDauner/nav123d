@@ -5,14 +5,14 @@ from py123d.datatypes import Lane, LaneGroup
 
 
 class Dijkstra:
-    """
-    A class that performs dijkstra's shortest path. The class operates on lane level graph search.
-    The goal condition is specified to be if the lane can be found at the target lane_group.
+    """Performs Dijkstra's shortest-path search on a lane-level graph.
+
+    The goal condition is met when a lane is found in the target lane_group.
     """
 
     def __init__(self, start_lane: Lane, candidate_lane_ids: List[int]):
-        """
-        Constructor for the Dijkstra class.
+        """Constructor for the Dijkstra class.
+
         :param start_lane: The starting lane for the search
         :param candidate_lane_ids: The candidate lane ids that can be included in the search.
         """
@@ -21,8 +21,8 @@ class Dijkstra:
         self._candidate_lane_ids = candidate_lane_ids
 
     def search(self, target_lane_group: LaneGroup) -> Tuple[List[Lane], bool]:
-        """
-        Performs dijkstra's shortest path to find a route to the target lane_group.
+        """Performs dijkstra's shortest path to find a route to the target lane_group.
+
         :param target_lane_group: The target lane_group the path should end at.
         :return:
             - A route starting from the given start lane
@@ -99,8 +99,8 @@ class Dijkstra:
 
     @staticmethod
     def _edge_cost(lane: Lane) -> float:
-        """
-        Edge cost of given lane.
+        """Edge cost of given lane.
+
         :param lane: lane class
         :return: length of lane centerline
         """
@@ -111,8 +111,8 @@ class Dijkstra:
         current_lane: Lane,
         target_lane_group: LaneGroup,
     ) -> bool:
-        """
-        Check if the current lane is at the target lane_group.
+        """Check if the current lane is at the target lane_group.
+
         :param current_lane: The lane to check.
         :param target_lane_group: The target lane_group the lane should be contained in.
         :return: whether the current lane is in the target lane_group
@@ -121,7 +121,8 @@ class Dijkstra:
         return int(current_lane.lane_group_id) == int(target_lane_group.object_id)
 
     def _construct_path(self, end_lane: Lane) -> List[Lane]:
-        """
+        """Reconstructs the path by back-propagating parents from the end lane to the start lane.
+
         :param end_lane: The end lane to start back propagating back to the start lane.
         :return: The constructed path as a list of Lane
         """

@@ -27,13 +27,14 @@ def get_collision_type(
     box_detection_polygon: Polygon,
     stopped_speed_threshold: float = 5e-02,
 ) -> CollisionType:
-    """
-    Classify collision between ego and the track.
-    :param ego_state: Ego's state at the current timestamp.
-    :param box_detection_se2: Box detection state.
-    :param box_detection_polygon: Polygon representing the box detection.
-    :param stopped_speed_threshold: Threshold for 0 speed due to noise.
-    :return Collision type.
+    """Classify the collision between ego and the track.
+
+    :param state: ego's state array at the collision timestamp
+    :param ego_polygon: polygon of the ego vehicle
+    :param box_detection_se2: box detection state
+    :param box_detection_polygon: polygon representing the box detection
+    :param stopped_speed_threshold: threshold for 0 speed due to noise
+    :return: collision type
     """
 
     ego_speed = np.hypot(
@@ -77,8 +78,8 @@ def get_collision_type(
 
 
 def is_track_stopped(box_detection_se2: BoxDetectionSE2, stopped_speed_threshold: float = 5e-02) -> bool:
-    """
-    Evaluates if a tracked object is stopped
+    """Evaluates if a tracked object is stopped.
+
     :param box_detection_se2: Box detection state
     :param stopped_speed_threshold: Threshold for 0 speed due to noise
     :return: True if track is stopped else False.
@@ -93,15 +94,19 @@ def is_track_stopped(box_detection_se2: BoxDetectionSE2, stopped_speed_threshold
 
 
 def is_agent_behind(ego_pose_se2: PoseSE2, agent_pose_se2: PoseSE2, angle_tolerance: float = 150) -> bool:
-    """
-    Determines if an agent is behind of the ego
+    """Determines if an agent is behind the ego.
+
+    :param ego_pose_se2: ego's pose
+    :param agent_pose_se2: agent's pose
+    :param angle_tolerance: tolerance to consider if agent is behind, where zero is the heading of the ego [deg]
+    :return: true if agent is behind, false otherwise.
     """
     return bool(get_agent_relative_angle(ego_pose_se2, agent_pose_se2) > np.deg2rad(angle_tolerance))
 
 
 def is_agent_ahead(ego_pose_se2: PoseSE2, agent_pose_se2: PoseSE2, angle_tolerance: float = 30) -> bool:
-    """
-    Determines if an agent is ahead of the ego
+    """Determines if an agent is ahead of the ego.
+
     :param ego_pose_se2: ego's pose
     :param agent_pose_se2: agent's pose
     :param angle_tolerance: tolerance to consider if agent is ahead, where zero is the heading of the ego [deg]
@@ -111,8 +116,8 @@ def is_agent_ahead(ego_pose_se2: PoseSE2, agent_pose_se2: PoseSE2, angle_toleran
 
 
 def get_agent_relative_angle(ego_pose_se2: PoseSE2, agent_pose_se2: PoseSE2) -> float:
-    """
-    Get the the relative angle of an agent position to the ego
+    """Get the relative angle of an agent position to the ego.
+
     :param ego_pose_se2: pose of ego
     :param agent_pose_se2: pose of an agent
     :return: relative angle in radians.

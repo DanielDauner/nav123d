@@ -12,7 +12,15 @@ def sample_ego_trajectory_from_api(
     in_relative: bool = False,
     interpolation_addon_s: float = 0.5,
 ) -> TrajectorySE2:
-    "TODO: add docstring"
+    """Loads the logged ego poses and resamples them to the given sampling specification.
+
+    :param scene_api: API providing access to the logged ego states.
+    :param trajectory_sampling: target sampling specification of the returned trajectory.
+    :param in_relative: if True, return poses relative to the initial ego pose, defaults to False.
+    :param interpolation_addon_s: extra horizon (in seconds) of logged states to load so the final
+        pose can be interpolated, defaults to 0.5.
+    :return: future ego trajectory resampled to the target sampling, as SE2.
+    """
 
     initial_ego_state_se3 = scene_api.get_ego_state_se3_at_iteration(0)
     assert initial_ego_state_se3 is not None, "Ego state should be available for target computation!"

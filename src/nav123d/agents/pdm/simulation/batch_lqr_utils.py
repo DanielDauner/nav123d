@@ -21,9 +21,9 @@ def _generate_profile_from_initial_condition_and_derivatives(
     derivatives: npt.NDArray[np.float64],
     discretization_time: float,
 ) -> npt.NDArray[np.float64]:
-    """
-    Returns the corresponding profile (i.e. trajectory) given an initial condition and derivatives at
+    """Returns the corresponding profile (i.e. trajectory) given an initial condition and derivatives at
     multiple timesteps by integration.
+
     :param initial_condition: The value of the variable at the initial timestep.
     :param derivatives: The trajectory of time derivatives of the variable at timesteps 0,..., N-1.
     :param discretization_time: [s] Time discretization used for integration.
@@ -38,8 +38,8 @@ def _generate_profile_from_initial_condition_and_derivatives(
 def _get_xy_heading_displacements_from_poses(
     poses: npt.NDArray[np.float64],
 ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """
-    Returns position and heading displacements given a pose trajectory.
+    """Returns position and heading displacements given a pose trajectory.
+
     :param poses: <np.ndarray: num_poses, 3> A trajectory of poses (x, y, heading).
     :return: Tuple of xy displacements with shape (num_poses-1, 2) and heading displacements with shape (num_poses-1,).
     """
@@ -56,9 +56,10 @@ def _get_xy_heading_displacements_from_poses(
 
 
 def _make_banded_difference_matrix(number_rows: int) -> npt.NDArray[np.float64]:
-    """
-    Returns a banded difference matrix with specified number_rows.
+    """Returns a banded difference matrix with specified number_rows.
+
     When applied to a vector [x_1, ..., x_N], it returns [x_2 - x_1, ..., x_N - x_{N-1}].
+
     :param number_rows: The row dimension of the banded difference matrix (e.g. N-1 in the example above).
     :return: A banded difference matrix with shape (number_rows, number_rows+1).
     """
@@ -75,8 +76,8 @@ def _fit_initial_velocity_and_acceleration_profile(
     discretization_time: float,
     jerk_penalty: float,
 ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """
-    Estimates initial velocity (v_0) and acceleration ({a_0, ...}) using least squares with jerk penalty regularization.
+    """Estimates initial velocity (v_0) and acceleration ({a_0, ...}) using least squares with jerk penalty regularization.
+
     :param xy_displacements: [m] Deviations in x and y occurring between M+1 poses, a M by 2 matrix.
     :param heading_profile: [rad] Headings associated to the starting timestamp for xy_displacements, a M-length vector.
     :param discretization_time: [s] Time discretization used for integration.
@@ -146,9 +147,9 @@ def _fit_initial_curvature_and_curvature_rate_profile(
     curvature_rate_penalty: float,
     initial_curvature_penalty: float = INITIAL_CURVATURE_PENALTY,
 ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """
-    Estimates initial curvature (curvature_0) and curvature rate ({curvature_rate_0, ...})
+    """Estimates initial curvature (curvature_0) and curvature rate ({curvature_rate_0, ...})
     using least squares with curvature rate regularization.
+
     :param heading_displacements: [rad] Angular deviations in heading occurring between timesteps.
     :param velocity_profile: [m/s] Estimated or actual velocities at the timesteps matching displacements.
     :param discretization_time: [s] Time discretization used for integration.
@@ -210,9 +211,9 @@ def get_velocity_curvature_profiles_with_derivatives_from_poses(
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
 ]:
-    """
-    Main function for joint estimation of velocity, acceleration, curvature, and curvature rate given N poses
-    sampled at discretization_time.  This is done by solving two least squares problems with the given penalty weights.
+    """Main function for joint estimation of velocity, acceleration, curvature, and curvature rate given N poses
+    sampled at discretization_time. This is done by solving two least squares problems with the given penalty weights.
+
     :param discretization_time: [s] Time discretization used for integration.
     :param poses: <np.ndarray: num_poses, 3> A trajectory of N poses (x, y, heading).
     :param jerk_penalty: A regularization parameter used to penalize acceleration differences.  Should be positive.

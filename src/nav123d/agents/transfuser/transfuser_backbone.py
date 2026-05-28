@@ -1,6 +1,4 @@
-"""
-Implements the TransFuser vision backbone.
-"""
+"""Implements the TransFuser vision backbone."""
 
 import copy
 import math
@@ -150,11 +148,11 @@ class TransfuserBackbone(nn.Module):
         return p3
 
     def forward(self, image, lidar):
-        """
-        Image + LiDAR feature fusion using transformers
-        Args:
-            image_list (list): list of input images
-            lidar_list (list): list of input LiDAR BEV
+        """Image + LiDAR feature fusion using transformers.
+
+        :param image: input image features
+        :param lidar: input LiDAR BEV features
+        :return: tuple of (BEV features, fused features, image feature grid)
         """
         image_features, lidar_features = image, lidar
 
@@ -209,9 +207,10 @@ class TransfuserBackbone(nn.Module):
         return features, fused_features, image_feature_grid
 
     def forward_layer_block(self, layers, return_layers, features):
-        """
-        Run one forward pass to a block of layers from a TIMM neural network and returns the result.
-        Advances the whole network by just one block
+        """Run one forward pass through a block of layers of a TIMM network and return the result.
+
+        Advances the whole network by just one block.
+
         :param layers: Iterator starting at the current layer block
         :param return_layers: TIMM dictionary describing at which intermediate layers features are returned.
         :param features: Input features
@@ -224,8 +223,8 @@ class TransfuserBackbone(nn.Module):
         return features
 
     def fuse_features(self, image_features, lidar_features, layer_idx):
-        """
-        Perform a TransFuser feature fusion block using a Transformer module.
+        """Perform a TransFuser feature fusion block using a Transformer module.
+
         :param image_features: Features from the image branch
         :param lidar_features: Features from the LiDAR branch
         :param layer_idx: Transformer layer index.
@@ -315,10 +314,11 @@ class GPT(nn.Module):
             module.weight.data.fill_(self.config.gpt_layer_norm_init_weight)
 
     def forward(self, image_tensor, lidar_tensor):
-        """
-        Args:
-            image_tensor (tensor): B*4*seq_len, C, H, W
-            lidar_tensor (tensor): B*seq_len, C, H, W
+        """Forward pass fusing image and lidar tokens through the GPT blocks.
+
+        :param image_tensor: image tokens, shape B*4*seq_len, C, H, W
+        :param lidar_tensor: lidar tokens, shape B*seq_len, C, H, W
+        :return: tuple of (image tokens out, lidar tokens out)
         """
 
         bz = lidar_tensor.shape[0]
@@ -361,10 +361,7 @@ class GPT(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    """
-    A vanilla multi-head masked self-attention layer with a projection at the
-    end.
-    """
+    """A vanilla multi-head masked self-attention layer with a projection at the end."""
 
     def __init__(self, n_embd, n_head, attn_pdrop, resid_pdrop):
         super().__init__()
@@ -424,9 +421,7 @@ class Block(nn.Module):
 
 
 class MultiheadAttentionWithAttention(nn.Module):
-    """
-    MultiheadAttention that also return attention weights
-    """
+    """MultiheadAttention that also returns attention weights."""
 
     def __init__(self, n_embd, n_head, pdrop):
         super().__init__()

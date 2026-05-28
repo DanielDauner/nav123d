@@ -10,8 +10,8 @@ from nav123d.agents.pdm.utils.pdm_enums import PointIndex, SE2Index
 
 
 def normalize_angle(angle):
-    """
-    Map a angle in range [-π, π]
+    """Map an angle into the range [-π, π].
+
     :param angle: any angle as float
     :return: normalized angle
     """
@@ -24,13 +24,13 @@ def translate_lon_and_lat(
     lon: float,
     lat: float,
 ) -> npt.NDArray[np.float64]:
-    """
-    Translate the position component of an centers point array
+    """Translate the position component of a centers point array.
+
     :param centers: array to be translated
     :param headings: array with heading angles
     :param lon: [m] distance by which a point should be translated in longitudinal direction
     :param lat: [m] distance by which a point should be translated in lateral direction
-    :return array of translated coordinates
+    :return: array of translated coordinates
     """
     half_pi = np.pi / 2.0
     translation: npt.NDArray[np.float64] = np.stack(
@@ -44,8 +44,8 @@ def translate_lon_and_lat(
 
 
 def calculate_progress(path: List[PoseSE2]) -> List[float]:
-    """
-    Calculate the cumulative progress of a given path.
+    """Calculate the cumulative progress of a given path.
+
     :param path: a path consisting of PoseSE2 as waypoints
     :return: a cumulative list of progress
     """
@@ -59,8 +59,8 @@ def calculate_progress(path: List[PoseSE2]) -> List[float]:
 
 
 def se2_array_translate_longitudinally(se2_array: npt.NDArray[np.float64], distance: float) -> npt.NDArray[np.float64]:
-    """
-    Translates an SE2 array along the heading axis by distance.
+    """Translates an SE2 array along the heading axis by distance.
+
     :param se2_array: array of SE2 states with (x,y,θ) in last dim
     :param distance: distance to translate [m]
     :return: Translated SE2 coords array.
@@ -78,8 +78,8 @@ def get_velocity_shifted(
     ref_velocity_2d: npt.NDArray[np.float64],
     ref_angular_vel: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
-    """
-    Computes the velocity at a query point on the same planar rigid body as a reference point.
+    """Computes the velocity at a query point on the same planar rigid body as a reference point.
+
     :param displacement: [m] The displacement vector from the reference to the query point
     :param ref_velocity_2d: [m/s] The velocity vector at the reference point
     :param ref_angular_vel: [rad/s] The angular velocity of the body around the vertical axis
@@ -100,8 +100,8 @@ def get_acceleration_shifted(
     ref_angular_vel: npt.NDArray[np.float64],
     ref_angular_accel: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
-    """
-    Computes the acceleration at a query point on the same planar rigid body as a reference point.
+    """Computes the acceleration at a query point on the same planar rigid body as a reference point.
+
     :param displacement: [m] The displacement vector from the reference to the query point
     :param ref_accel_2d: [m/s^2] The acceleration vector at the reference point
     :param ref_angular_vel: [rad/s] The angular velocity of the body around the vertical axis

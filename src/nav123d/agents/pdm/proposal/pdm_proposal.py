@@ -35,9 +35,9 @@ class PDMProposalManager:
         lateral_proposals: List[PolylineSE2],
         longitudinal_policies: BatchIDMPolicy,
     ):
-        """
-        Constructor for PDMProposalManager
-        :param lateral_proposals: list of path's to follow
+        """Constructor for PDMProposalManager.
+
+        :param lateral_proposals: list of paths to follow
         :param longitudinal_policies: IDM policy class (batch-wise)
         """
 
@@ -65,32 +65,36 @@ class PDMProposalManager:
         return len(self._proposals)
 
     def __getitem__(self, proposal_idx) -> PDMProposal:
-        """
-        Returns the requested proposal.
+        """Returns the requested proposal.
+
         :param proposal_idx: index for each proposal
         :return: PDMProposal dataclass
         """
         return self._proposals[proposal_idx]
 
     def update(self, speed_limit_mps: Optional[float]) -> None:
-        """
-        Updates target velocities of IDM policies with current speed-limit.
+        """Updates target velocities of IDM policies with current speed-limit.
+
         :param speed_limit_mps: current speed-limit [m/s]
         """
         self._longitudinal_policies.update(speed_limit_mps)
 
     @property
     def num_lateral_proposals(self) -> int:
+        """:return: number of lateral proposals (paths)."""
         return self._num_lateral_proposals
 
     @property
     def num_longitudinal_proposals(self) -> int:
+        """:return: number of longitudinal proposals (IDM policies)."""
         return self._num_longitudinal_proposals
 
     @property
     def max_target_velocity(self) -> float:
+        """:return: highest target velocity across the IDM policies [m/s]."""
         return float(self._longitudinal_policies.max_target_velocity)
 
     @property
     def longitudinal_policies(self) -> BatchIDMPolicy:
+        """:return: the batch of IDM policies shared by all proposals."""
         return self._longitudinal_policies

@@ -6,9 +6,7 @@ from py123d.datatypes import LaneGroup, MapLayer
 
 
 class BreadthFirstSearchLaneGroup:
-    """
-    A class that performs iterative breadth first search. The class operates on the lane_group graph.
-    """
+    """Performs iterative breadth-first search on the lane_group graph."""
 
     def __init__(
         self,
@@ -16,10 +14,10 @@ class BreadthFirstSearchLaneGroup:
         map_api: MapAPI,
         forward_search: bool = True,
     ):
-        """
-        Constructor of BreadthFirstSearchLaneGroup class
+        """Constructor of BreadthFirstSearchLaneGroup class.
+
         :param start_lane_group_id: lane_group id where graph starts
-        :param map_api: map class in nuPlan
+        :param map_api: map interface
         :param forward_search: whether to search in driving direction, defaults to True
         """
         self._map_api: MapAPI = map_api
@@ -33,11 +31,11 @@ class BreadthFirstSearchLaneGroup:
     def search(
         self, target_lane_group_id: Union[int, List[int]], max_depth: int
     ) -> Tuple[List[LaneGroup], List[int], bool]:
-        """
-        Apply BFS to find route to target lane_group.
+        """Apply BFS to find route to target lane_group.
+
         :param target_lane_group_id: id of target lane_group
         :param max_depth: maximum search depth
-        :return: tuple of route and whether a path was found
+        :return: tuple of (route lane groups, route lane group ids, whether a path was found)
         """
 
         if isinstance(target_lane_group_id, int):
@@ -92,8 +90,8 @@ class BreadthFirstSearchLaneGroup:
 
     @staticmethod
     def _check_end_condition(depth: int, max_depth: int) -> bool:
-        """
-        Check if the search should end regardless if the goal condition is met.
+        """Check if the search should end regardless if the goal condition is met.
+
         :param depth: The current depth to check.
         :param max_depth: The maximum depth to check against.
         :return: whether depth exceeds the target depth.
@@ -107,19 +105,19 @@ class BreadthFirstSearchLaneGroup:
         depth: int,
         max_depth: int,
     ) -> bool:
-        """
-        Check if the current edge is at the target lane_group at the given depth.
+        """Check if the current edge is at the target lane_group at the given depth.
+
         :param current_edge: edge to check.
         :param target_lane_group_ids: list of target lane_group ids.
         :param depth: current depth to check.
         :param max_depth: maximum depth the edge should be at.
-        :return: True if the lane edge is contain the in the target lane_group. False, otherwise.
+        :return: True if the lane edge is contained in the target lane_group, False otherwise.
         """
         return int(current_edge.object_id) in target_lane_group_ids and depth <= max_depth
 
     def _construct_path(self, end_edge: LaneGroup, depth: int) -> Tuple[List[LaneGroup], List[int]]:
-        """
-        Constructs a path when goal was found.
+        """Constructs a path when goal was found.
+
         :param end_edge: The end edge to start back propagating back to the start edge.
         :param depth: The depth of the target edge.
         :return: The constructed path as a list of LaneGroup

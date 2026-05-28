@@ -48,8 +48,8 @@ class PDMResults:
 
     @classmethod
     def get_empty_results(cls) -> PDMResults:
-        """
-        Returns an instance of the class where all values are NaN.
+        """Returns an instance of the class where all values are NaN.
+
         :return: empty PDM results dataclass.
         """
         return PDMResults(
@@ -66,6 +66,8 @@ class PDMResults:
 
 @dataclass
 class PDMScorerConfig:
+    """Configuration of metric weights and thresholds used by the PDMScorer."""
+
     # weighted metric weights
     progress_weight: float = 5.0
     ttc_weight: float = 5.0
@@ -89,6 +91,7 @@ class PDMScorerConfig:
 
     @property
     def weighted_metrics_array(self) -> npt.NDArray[np.float64]:
+        """:return: per-metric weights laid out by :class:`WeightedMetricIndex`."""
         weighted_metrics = np.zeros(len(WeightedMetricIndex), dtype=np.float64)
         weighted_metrics[WeightedMetricIndex.PROGRESS] = self.progress_weight
         weighted_metrics[WeightedMetricIndex.TTC] = self.ttc_weight
@@ -98,6 +101,8 @@ class PDMScorerConfig:
 
 @dataclass
 class PDMScorerState:
+    """Per-call mutable state of the PDMScorer holding the metric arrays for all proposals."""
+
     observation: PDMObservation
     centerline: PolylineSE2
     route_lane_ids: List[int]
@@ -125,6 +130,16 @@ class PDMScorerState:
         drivable_area_map: OccupancyMap2D,
         ego_metadata: EgoStateSE3Metadata,
     ) -> PDMScorerState:
+        """Builds a fresh scorer state with zero-initialized metric arrays for the proposals.
+
+        :param states: array representation of simulated proposals
+        :param observation: PDM's observation class
+        :param centerline: path of the centerline
+        :param route_lane_ids: list containing on-route lane ids
+        :param drivable_area_map: occupancy map of drivable area polygons
+        :param ego_metadata: metadata (dimensions) of the ego vehicle
+        :return: initialized PDMScorerState
+        """
         assert states.ndim == 3
         assert states.shape[2] == len(StateIndex)
 
@@ -183,9 +198,10 @@ class PDMScorer:
         proposal_sampling: TrajectorySampling,
         config: PDMScorerConfig = PDMScorerConfig(),
     ):
-        """
-        Constructor of PDMScorer
+        """Constructor of PDMScorer.
+
         :param proposal_sampling: Sampling parameters for proposals
+        :param config: metric weights and thresholds, defaults to PDMScorerConfig()
         """
         self.proposal_sampling = proposal_sampling
         self._config = config
@@ -194,8 +210,8 @@ class PDMScorer:
         self._state: Optional[PDMScorerState] = None
 
     def time_to_at_fault_collision(self, proposal_idx: int) -> float:
-        """
-        Returns time to at-fault collision for given proposal
+        """Returns time to at-fault collision for given proposal.
+
         :param proposal_idx: index for proposal
         :return: time to infraction
         """
@@ -204,8 +220,8 @@ class PDMScorer:
         return float(self._state.collision_time_idcs[proposal_idx] * self.proposal_sampling.interval_length)
 
     def time_to_ttc_infraction(self, proposal_idx: int) -> float:
-        """
-        Returns time to ttc infraction for given proposal
+        """Returns time to ttc infraction for given proposal.
+
         :param proposal_idx: index for proposal
         :return: time to infraction
         """
@@ -221,14 +237,14 @@ class PDMScorer:
         drivable_area_map: OccupancyMap2D,
         ego_metadata: EgoStateSE3Metadata,
     ) -> List[pd.DataFrame]:
-        """
-        TODO: Update this docstring
-        Scores proposal similar to nuPlan's closed-loop metrics
+        """Scores proposals with PDM's closed-loop metrics, one DataFrame per proposal.
+
         :param states: array representation of simulated proposals
         :param observation: PDM's observation class
         :param centerline: path of the centerline
         :param route_lane_ids: list containing on-route lane ids
-        :param drivable_area_map: Occupancy map of drivable are polygons
+        :param drivable_area_map: Occupancy map of drivable area polygons
+        :param ego_metadata: metadata (dimensions) of the ego vehicle
         :return: A List containing the PDMResult for each proposal
         """
 
@@ -298,9 +314,7 @@ class PDMScorer:
         return results
 
     def _aggregate_pdm_scores(self) -> npt.NDArray[np.float64]:
-        """
-        Score for PDM proposals, ignoring two-frame extended comfort.
-        """
+        """Aggregates multiplicative and weighted metrics into a final PDM score per proposal."""
         assert self._state is not None, "PDMScorer not initialized properly."
 
         # accumulate multiplicative metrics
@@ -382,9 +396,9 @@ class PDMScorer:
     #     self._ttc_time_idcs.fill(np.inf)
 
     def _calculate_ego_area(self) -> None:
-        """
-        Determines the area of proposals over time.
-        Areas are (1) in multiple lanes, (2) non-drivable area, or (3) oncoming traffic
+        """Determines the area type each proposal occupies over time.
+
+        Areas are (1) in multiple lanes, (2) non-drivable area, (3) oncoming traffic, or (4) intersection.
         """
         assert self._state is not None, "PDMScorer not initialized properly."
 
@@ -442,9 +456,7 @@ class PDMScorer:
         self._state.ego_areas[batch_intersection_mask, EgoAreaIndex.INTERSECTION] = True
 
     def _calculate_no_at_fault_collision(self) -> None:
-        """
-        Re-implementation of nuPlan's at-fault collision metric.
-        """
+        """Re-implementation of nuPlan's at-fault collision metric."""
         assert self._state is not None, "PDMScorer not initialized properly."
 
         no_at_fault_collision_scores = np.ones(self._state.num_proposals, dtype=np.float64)
@@ -509,9 +521,7 @@ class PDMScorer:
         self._state.multi_metrics[MultiMetricIndex.NO_COLLISION] = no_at_fault_collision_scores
 
     def _calculate_drivable_area_compliance(self) -> None:
-        """
-        Re-implementation of nuPlan's drivable area compliance metric
-        """
+        """Re-implementation of nuPlan's drivable area compliance metric."""
         assert self._state is not None, "PDMScorer not initialized properly."
         drivable_area_compliance_scores = np.ones(self._state.num_proposals, dtype=np.float64)
         off_road_mask = self._state.ego_areas[:, :, EgoAreaIndex.NON_DRIVABLE_AREA].any(axis=-1)
@@ -519,9 +529,7 @@ class PDMScorer:
         self._state.multi_metrics[MultiMetricIndex.DRIVABLE_AREA] = drivable_area_compliance_scores
 
     def _calculate_driving_direction_compliance(self) -> None:
-        """
-        Re-implementation of nuPlan's driving direction compliance metric
-        """
+        """Re-implementation of nuPlan's driving direction compliance metric."""
         assert self._state is not None, "PDMScorer not initialized properly."
         center_coordinates = self._state.ego_coords[:, :, BBCoordsIndex.CENTER]
         oncoming_progress = np.zeros(
@@ -564,8 +572,8 @@ class PDMScorer:
         self._state.multi_metrics[MultiMetricIndex.DRIVING_DIRECTION] = driving_direction_compliance_scores
 
     def _calculate_progress(self) -> None:
-        """
-        Re-implementation of nuPlan's progress metric (non-normalized).
+        """Re-implementation of nuPlan's progress metric (non-normalized).
+
         Calculates progress along the centerline.
         """
         assert self._state is not None, "PDMScorer not initialized properly."
@@ -584,9 +592,7 @@ class PDMScorer:
         self._progress_raw = np.clip(progress_in_meter, a_min=0, a_max=None)
 
     def _calculate_ttc(self):
-        """
-        Re-implementation of nuPlan's time-to-collision metric.
-        """
+        """Re-implementation of nuPlan's time-to-collision metric."""
         assert self._state is not None, "PDMScorer not initialized properly."
 
         ttc_scores = np.ones(self._state.num_proposals, dtype=np.float64)
@@ -673,9 +679,7 @@ class PDMScorer:
         self._state.weighted_metrics[WeightedMetricIndex.TTC] = ttc_scores
 
     def _calculate_traffic_light_compliance(self) -> None:
-        """
-        Re-implementation of hydraMDP++'s traffic light compliance metric.
-        """
+        """Re-implementation of hydraMDP++'s traffic light compliance metric."""
         assert self._state is not None, "PDMScorer not initialized properly."
         # Initialize scores for all proposals to 1 (compliant by default)
         traffic_light_compliance_scores = np.ones(self._state.num_proposals, dtype=np.float64)
@@ -707,9 +711,7 @@ class PDMScorer:
         self._state.multi_metrics[MultiMetricIndex.TRAFFIC_LIGHT_COMPLIANCE] = traffic_light_compliance_scores
 
     def _calculate_comfort(self) -> None:
-        """
-        Implementation of comfort metric, padded with past history states.
-        """
+        """Implementation of comfort metric, padded with past history states."""
         assert self._state is not None, "PDMScorer not initialized properly."
         time_point_s: npt.NDArray[np.float64] = (
             np.arange(0, self._state.states.shape[1]).astype(np.float64) * self.proposal_sampling.interval_length

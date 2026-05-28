@@ -25,7 +25,11 @@ class PDMObjectManager:
         max_dynamic_objects_per_label: Dict[str, int] = MAX_DYNAMIC_OBJECTS_PER_LABEL,
         max_static_objects: int = MAX_STATIC_OBJECTS,
     ) -> None:
-        """Constructor of PDMObjectManager."""
+        """Constructor of PDMObjectManager.
+
+        :param max_dynamic_objects_per_label: cap on tracked dynamic objects kept per label
+        :param max_static_objects: cap on tracked static objects kept
+        """
 
         # all objects
         self._unique_objects: Dict[str, BoxDetectionSE2] = {}
@@ -43,15 +47,12 @@ class PDMObjectManager:
 
     @property
     def unique_objects(self) -> Dict[str, BoxDetectionSE2]:
-        """
-        Getter of unique_objects
-        :return: Dictionary of uniquely tracked objects
-        """
+        """:return: mapping from track token to every object added to the manager."""
         return self._unique_objects
 
     def add_object(self, box_detection_se2: BoxDetectionSE2) -> None:
-        """
-        Add box_detection_se2 to manager and sort category (dynamic/static)
+        """Adds an object to the manager, sorting it into the dynamic or static category.
+
         :param box_detection_se2: any tracked object
         """
 
@@ -97,8 +98,8 @@ class PDMObjectManager:
             self._static_object_bbse2.append(bbse2_array)
 
     def get_nearest_objects(self, position: Point2D) -> Tuple:
-        """
-        Retrieve nearest k objects depending on category.
+        """Retrieves the nearest objects per category, capped per label.
+
         :param position: global map position
         :return: tuple containing tokens, bbse2, and dynamic information of objects
         """
@@ -140,8 +141,8 @@ class PDMObjectManager:
         )
 
     def _get_nearest_dynamic_objects(self, position: Point2D, label: str) -> Tuple:
-        """
-        Retrieves nearest k dynamic objects depending on type
+        """Retrieves the nearest dynamic objects of the given label.
+
         :param position: Ego-vehicle position
         :param label: Object label to sort
         :return: Tuple of tokens, bbse2, and velocity of nearest objects.
@@ -171,10 +172,9 @@ class PDMObjectManager:
         return (object_tokens, object_bbse2, object_dxy)
 
     def _get_nearest_static_objects(self, position: Point2D) -> Tuple:
-        """
-        Retrieves nearest k static obstacles around ego's position.
+        """Retrieves the nearest static obstacles around ego's position.
+
         :param position: ego's position
-        :param label: label of static obstacle (currently ignored)
         :return: tuple of tokens and coords of nearest objects
         """
         position_coords = position.array[None, ...]  # shape: (1,2)

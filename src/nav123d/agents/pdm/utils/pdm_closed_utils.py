@@ -18,8 +18,8 @@ def build_route_dicts(
     map_api: MapAPI,
     route_roadblock_ids: List[int],
 ) -> Tuple[Dict[int, LaneGroup], Dict[int, Lane]]:
-    """
-    Builds roadblock and lane dictionaries of the target route from the map-api.
+    """Builds roadblock and lane dictionaries of the target route from the map-api.
+
     :param map_api: map interface
     :param route_roadblock_ids: ID's of on-route roadblocks
     :return: tuple of (route_roadblock_dict, route_lane_dict)
@@ -46,11 +46,11 @@ def correct_route_lane_groups(
     map_api: MapAPI,
     route_lane_group_dict: Dict[int, LaneGroup],
 ) -> Tuple[Dict[int, LaneGroup], Dict[int, Lane]]:
-    """
-    Corrects the roadblock route and rebuilds lane-graph dictionaries.
-    :param ego_state: state of the ego vehicle
+    """Corrects the roadblock route and rebuilds lane-graph dictionaries.
+
+    :param ego_state_se2: state of the ego vehicle
     :param map_api: map interface
-    :param route_roadblock_dict: current roadblock dict (used for correction context)
+    :param route_lane_group_dict: current lane group dict (used for correction context)
     :return: tuple of (corrected route_roadblock_dict, corrected route_lane_dict)
     """
     corrected_lane_groups, corrected_ids = route_lane_group_correction(
@@ -73,6 +73,14 @@ def build_drivable_area_occupancy_map(
         MapLayer.CARPARK,
     ],
 ) -> OccupancyMap2D:
+    """Builds an occupancy map of drivable surfaces around ego from the given map layers.
+
+    :param map_api: map interface
+    :param ego_state_se2: state of the ego vehicle
+    :param map_radius: radius around ego to query [m], defaults to 50.0
+    :param layers: map layers treated as drivable
+    :return: occupancy map of drivable surface polygons
+    """
     query_dict = map_api.get_map_objects_in_radius(
         point=ego_state_se2.center_2d,
         radius=map_radius,
@@ -90,9 +98,9 @@ def build_drivable_area_occupancy_map(
 def _get_intersecting_lanes(
     ego_state_se2: EgoStateSE2, route_lane_dict: Dict[int, Lane], drivable_area_map: OccupancyMap2D
 ) -> Tuple[List[Lane], List[float]]:
-    """
-    Returns on-route lanes and heading errors where ego-vehicle intersects.
-    :param ego_state: state of ego-vehicle
+    """Returns on-route lanes and heading errors where ego-vehicle intersects.
+
+    :param ego_state_se2: state of ego-vehicle
     :param route_lane_dict: on-route lane dictionary
     :param drivable_area_map: drivable area occupancy map
     :return: tuple of lists with lane objects and heading errors [rad].
@@ -134,9 +142,9 @@ def _get_starting_lane(
     route_lane_dict: Dict[int, Lane],
     drivable_area_map: OccupancyMap2D,
 ) -> Lane:
-    """
-    Returns the most suitable starting lane, in ego's vicinity.
-    :param ego_state: state of ego-vehicle
+    """Returns the most suitable starting lane in ego's vicinity.
+
+    :param ego_state_se2: state of ego-vehicle
     :param route_lane_dict: on-route lane dictionary
     :param drivable_area_map: drivable area occupancy map
     :return: lane object (on-route)
@@ -172,8 +180,8 @@ def get_centerline_as_polyline_se2(
     max_centerline_start_offset: float = 200.0,
     duplicate_pose_eps: float = 1e-3,
 ) -> PolylineSE2:
-    """
-    Applies a Dijkstra search on the lane-graph to retrieve discrete centerline.
+    """Applies a Dijkstra search on the lane-graph to retrieve the discrete centerline.
+
     :param current_lane: lane object of starting lane.
     :param route_lane_group_dict: on-route lane group dictionary
     :param route_lane_dict: on-route lane dictionary
@@ -235,13 +243,10 @@ def get_centerline_as_polyline_se2(
 def _get_proposal_paths(
     centerline_polyline_se2: PolylineSE2, lateral_offsets: Optional[List[float]]
 ) -> List[PolylineSE2]:
-    """
-    Builds proposal paths: centerline at index 0, plus optional lateral offsets.
-    :param current_lane: current or starting lane of path-planning
-    :param route_lane_group_dict: on-route lane group dictionary
-    :param route_lane_dict: on-route lane dictionary
+    """Builds proposal paths: centerline at index 0, plus optional lateral offsets.
+
+    :param centerline_polyline_se2: the centerline path to offset from
     :param lateral_offsets: optional centerline offsets for proposals
-    :param ego_state_se2: ego state used to sanity-check the centerline starts near ego
     :return: list of paths (index 0 is centerline)
     """
 

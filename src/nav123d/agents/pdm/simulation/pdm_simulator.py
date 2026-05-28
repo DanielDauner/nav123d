@@ -9,13 +9,11 @@ from nav123d.geometry.trajectory import TrajectorySampling
 
 
 class PDMSimulator:
-    """
-    Re-implementation of nuPlan's simulation pipeline. Enables batch-wise simulation.
-    """
+    """Re-implementation of nuPlan's simulation pipeline. Enables batch-wise simulation."""
 
     def __init__(self, proposal_sampling: TrajectorySampling):
-        """
-        Constructor of PDMSimulator.
+        """Constructor of PDMSimulator.
+
         :param proposal_sampling: Sampling parameters for proposals
         """
 
@@ -29,10 +27,10 @@ class PDMSimulator:
     def simulate_proposals(
         self, states: npt.NDArray[np.float64], initial_ego_state: EgoStateSE2
     ) -> npt.NDArray[np.float64]:
-        """
-        Simulate all proposals over batch-dim
-        :param initial_ego_state: ego-vehicle state at current iteration
+        """Simulate all proposals over batch-dim.
+
         :param states: proposal states as array
+        :param initial_ego_state: ego-vehicle state at current iteration
         :return: simulated proposal states as array
         """
 

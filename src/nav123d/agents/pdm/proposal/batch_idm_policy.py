@@ -19,9 +19,9 @@ class BatchIDMPolicy:
         decel_max: Union[List[float], float] = 3.0,
         acceleration_exponent: float = 10,
     ):
-        """
-        Constructor for BatchIDMPolicy
-        :param target_velocity: Desired fallback velocity in free traffic [m/s]
+        """Constructor for BatchIDMPolicy.
+
+        :param fallback_target_velocity: Desired fallback velocity in free traffic [m/s]
         :param speed_limit_fraction: Fraction of speed-limit desired in free traffic
         :param min_gap_to_lead_agent: Minimum relative distance to lead vehicle [m]
         :param headway_time: Desired time headway. Minimum time to the vehicle in front [s]
@@ -75,23 +75,17 @@ class BatchIDMPolicy:
 
     @property
     def num_policies(self) -> int:
-        """
-        Getter for number of policies
-        :return: int
-        """
+        """:return: number of IDM policies in the batch."""
         return self._num_policies
 
     @property
     def max_target_velocity(self):
-        """
-        Getter for highest target velocity of policies
-        :return: target velocity [m/s]
-        """
+        """:return: highest target velocity across policies [m/s]."""
         return np.max(self._target_velocities)
 
     def update(self, speed_limit_mps: Optional[float]):
-        """
-        Updates class with current speed limit
+        """Recomputes target velocities from the current speed limit.
+
         :param speed_limit_mps: speed limit of current lane [m/s]
         """
 
@@ -111,8 +105,8 @@ class BatchIDMPolicy:
         longitudinal_idcs: List[int],
         sampling_time: float,
     ) -> npt.NDArray[np.float64]:
-        """
-        Propagates IDM policies for one time-step
+        """Propagates IDM policies for one time-step.
+
         :param previous_idm_states: array containing previous state
         :param leading_agent_states: array contains leading vehicle information
         :param longitudinal_idcs: indices of policies to be applied over a batch-dim

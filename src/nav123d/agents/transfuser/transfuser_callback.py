@@ -23,8 +23,8 @@ class TransfuserCallback(L.Callback):
         num_rows: int = 2,
         num_columns: int = 2,
     ) -> None:
-        """
-        Initializes the visualization callback.
+        """Initializes the visualization callback.
+
         :param config: global config dataclass of TransFuser
         :param num_plots: number of images tiles, defaults to 3
         :param num_rows: number of rows in image tile, defaults to 2
@@ -92,8 +92,8 @@ class TransfuserCallback(L.Callback):
         targets: Dict[str, torch.Tensor],
         predictions: Dict[str, torch.Tensor],
     ) -> torch.Tensor:
-        """
-        Create tile of input-output visualizations for TransFuser.
+        """Create tile of input-output visualizations for TransFuser.
+
         :param features: dictionary of feature names and tensors
         :param targets: dictionary of target names and tensors
         :param predictions: dictionary of target names and predicted tensors
@@ -141,8 +141,8 @@ _PRED_RGB: Tuple[int, int, int] = TAB_10[3].rgb  # red
 
 
 def dict_to_device(dict: Dict[str, torch.Tensor], device: Union[torch.device, str]) -> Dict[str, torch.Tensor]:
-    """
-    Helper function to move tensors from dictionary to device.
+    """Helper function to move tensors from dictionary to device.
+
     :param dict: dictionary of names and tensors
     :param device: torch device to move tensors to
     :return: dictionary with tensors on specified device
@@ -153,8 +153,8 @@ def dict_to_device(dict: Dict[str, torch.Tensor], device: Union[torch.device, st
 
 
 def semantic_map_to_rgb(semantic_map: npt.NDArray[np.int64], config: TransfuserConfig) -> npt.NDArray[np.uint8]:
-    """
-    Convert semantic map to RGB image using the py123d color palette.
+    """Convert semantic map to RGB image using the py123d color palette.
+
     :param semantic_map: numpy array of segmentation map (multi-channel)
     :param config: global config dataclass of TransFuser
     :return: RGB image as numpy array
@@ -186,8 +186,8 @@ def lidar_map_to_rgb(
     pred_trajectory: npt.NDArray[np.float32],
     config: TransfuserConfig,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Converts lidar histogram map with predictions and targets to RGB.
+    """Converts lidar histogram map with predictions and targets to RGB.
+
     :param lidar_map: lidar histogram raster
     :param agent_states: target agent bounding box states (BoundingBoxSE2Index layout)
     :param pred_agent_states: predicted agent bounding box states (BoundingBoxSE2Index layout)

@@ -107,10 +107,12 @@ class TransfuserConfig:
 
     @property
     def bev_semantic_frame(self) -> Tuple[int, int]:
+        """:return: (height, width) of the BEV semantic frame in pixels."""
         return (self.bev_pixel_height, self.bev_pixel_width)
 
     @property
     def bev_radius(self) -> float:
+        """:return: radius [m] of the BEV grid, from the largest lidar extent."""
         values = [
             self.lidar_min_x,
             self.lidar_max_x,

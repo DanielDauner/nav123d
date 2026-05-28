@@ -17,8 +17,17 @@ def get_current_lane_group_candidates(
     heading_error_thresh: float = np.pi / 4,
     displacement_error_thresh: float = 3,
 ) -> Tuple[LaneGroup, List[LaneGroup]]:
-    """
-    TODO: Update docstring after refactor
+    """Finds the ego's current lane group and the set of nearby candidate lane groups.
+
+    Prefers on-route candidates, falling back to the closest off-route candidate, and finally
+    to any close lane group.
+
+    :param ego_pose_se2: pose of the ego vehicle
+    :param map_api: map interface
+    :param route_lane_group_dict: on-route lane group dictionary
+    :param heading_error_thresh: [rad] max heading error for a lane to count as a candidate
+    :param displacement_error_thresh: [m] max displacement error for a lane to count as a candidate
+    :return: tuple of (best current lane group, list of candidate lane groups)
     """
     lane_group_candidates = []
 
@@ -98,8 +107,17 @@ def route_lane_group_correction(
     search_depth_backward: int = 15,
     search_depth_forward: int = 30,
 ) -> Tuple[List[LaneGroup], List[int]]:
-    """
-    TODO: Update docstring after refactor
+    """Corrects and repairs the on-route lane groups for the current ego pose.
+
+    Handles three cases: an off-route start (backward then forward graph search), disconnected
+    consecutive lane groups (search for connecting links), and route loops.
+
+    :param ego_pose_se2: pose of the ego vehicle
+    :param map_api: map interface
+    :param route_lane_group_dict: on-route lane group dictionary
+    :param search_depth_backward: max BFS depth for the backward search, defaults to 15
+    :param search_depth_forward: max BFS depth for the forward search, defaults to 30
+    :return: tuple of (corrected lane groups, corrected lane group ids)
     """
     # TODO: Refactor code for readability
 
@@ -170,8 +188,8 @@ def remove_route_loops(
     route_lane_groups: List[LaneGroup],
     route_lane_group_ids: List[int],
 ) -> Tuple[List[LaneGroup], List[int]]:
-    """
-    Remove ending of route, if the lane_group are intersecting the route (forming a loop).
+    """Removes the end of the route where a lane group intersects an earlier one (forming a loop).
+
     :param route_lane_groups: input route lane_groups
     :param route_lane_group_ids: input route lane_groups ids
     :return: tuple of ids and lane_groups of route without loops

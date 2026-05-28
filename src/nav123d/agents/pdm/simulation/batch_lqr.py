@@ -13,9 +13,7 @@ from nav123d.agents.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
 
 
 class LateralStateIndex(IntEnum):
-    """
-    Index mapping for the lateral dynamics state vector.
-    """
+    """Index mapping for the lateral dynamics state vector."""
 
     LATERAL_ERROR = 0  # [m] The lateral error with respect to the planner centerline at the vehicle's rear axle center.
     HEADING_ERROR = 1  # [rad] The heading error "".
@@ -23,8 +21,7 @@ class LateralStateIndex(IntEnum):
 
 
 class BatchLQRTracker:
-    """
-    Implements an LQR tracker for a kinematic bicycle model.
+    """Implements an LQR tracker for a kinematic bicycle model.
 
     Tracker operates on a batch of proposals. Implementation directly based on the nuplan-devkit
     Link: https://github.com/motional/nuplan-devkit
@@ -71,12 +68,12 @@ class BatchLQRTracker:
         stopping_proportional_gain: float = 0.5,
         stopping_velocity: float = 0.2,
     ):
-        """
-        Constructor for LQR controller
-        :param q_longitudinal: The weights for the Q matrix for the longitudinal subystem.
-        :param r_longitudinal: The weights for the R matrix for the longitudinal subystem.
-        :param q_lateral: The weights for the Q matrix for the lateral subystem.
-        :param r_lateral: The weights for the R matrix for the lateral subystem.
+        """Constructor for LQR controller.
+
+        :param q_longitudinal: The weights for the Q matrix for the longitudinal subsystem.
+        :param r_longitudinal: The weights for the R matrix for the longitudinal subsystem.
+        :param q_lateral: The weights for the Q matrix for the lateral subsystem.
+        :param r_lateral: The weights for the R matrix for the lateral subsystem.
         :param tracking_horizon: How many discrete time steps ahead to consider for the LQR objective.
         :param jerk_penalty: Penalty on jerk used when fitting the velocity profile from poses.
         :param curvature_rate_penalty: Penalty on curvature rate used when fitting the curvature profile from poses.
@@ -116,10 +113,11 @@ class BatchLQRTracker:
         proposal_states: npt.NDArray[np.float64],
         discretization_time: float,
     ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-        """
-        Fit reference velocity and curvature profiles from a batch of proposal trajectories.
+        """Fit reference velocity and curvature profiles from a batch of proposal trajectories.
+
         Intended to be called once per simulation; the returned arrays are then passed into
         :meth:`track_trajectory` at each iteration.
+
         :param proposal_states: array representation of proposals.
         :param discretization_time: [s] The time interval used for discretizing the continuous time dynamics.
         :return: Tuple of (velocity_profile, curvature_profile).
@@ -150,8 +148,8 @@ class BatchLQRTracker:
         discretization_time: float,
         ego_wheel_base: float,
     ) -> npt.NDArray[np.float64]:
-        """
-        Calculates the command values given the proposals to track.
+        """Calculates the command values given the proposals to track.
+
         :param time_idx: current time index.
         :param initial_states: array representation of current ego states.
         :param proposal_states: array representation of proposals.
@@ -226,8 +224,8 @@ class BatchLQRTracker:
         initial_values: npt.NDArray[np.float64],
         proposal_states: npt.NDArray[np.float64],
     ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-        """
-        This method projects the initial tracking error into vehicle/Frenet frame.  It also extracts initial velocity.
+        """Projects the initial tracking error into the vehicle/Frenet frame and extracts initial velocity.
+
         :param time_idx: Current time index.
         :param initial_values: The current state for ego.
         :param proposal_states: The reference trajectory we are tracking.
@@ -264,9 +262,10 @@ class BatchLQRTracker:
         velocity_profile: npt.NDArray[np.float64],
         curvature_profile: npt.NDArray[np.float64],
     ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-        """
-        Slice precomputed reference profiles to obtain the lookahead window for the current iteration.
+        """Slice precomputed reference profiles to obtain the lookahead window for the current iteration.
+
         Uses a lookahead time equal to ``self._tracking_horizon * discretization_time``.
+
         :param time_idx: Current time index.
         :param velocity_profile: precomputed reference velocity profile.
         :param curvature_profile: precomputed reference curvature profile.
@@ -289,10 +288,10 @@ class BatchLQRTracker:
     def _stopping_controller(
         self, initial_velocities: npt.NDArray[np.float64], reference_velocities: npt.NDArray[np.float64]
     ) -> Tuple[npt.NDArray[np.float64], float]:
-        """
-        Apply proportional controller when at near-stop conditions.
-        :param initial_velocity: [m/s] The current velocity of ego.
-        :param reference_velocity: [m/s] The reference velocity to track.
+        """Apply proportional controller when at near-stop conditions.
+
+        :param initial_velocities: [m/s] The current velocity of ego.
+        :param reference_velocities: [m/s] The reference velocity to track.
         :return: Acceleration [m/s^2] and zero steering_rate [rad/s] command.
         """
         accel = -self._stopping_proportional_gain * (initial_velocities - reference_velocities)
@@ -304,10 +303,10 @@ class BatchLQRTracker:
         reference_velocities: npt.NDArray[np.float64],
         discretization_time: float,
     ) -> npt.NDArray[np.float64]:
-        """
-        This longitudinal controller determines an acceleration input to minimize velocity error at a lookahead time.
-        :param initial_velocity: [m/s] The current velocity of ego.
-        :param reference_velocity: [m/s] The reference_velocity to track at a lookahead time.
+        """Determines an acceleration input to minimize velocity error at a lookahead time.
+
+        :param initial_velocities: [m/s] The current velocity of ego.
+        :param reference_velocities: [m/s] The reference velocity to track at a lookahead time.
         :param discretization_time: [s] The time interval used for discretizing the continuous time dynamics.
         :return: Acceleration [m/s^2] command based on LQR.
         """
@@ -342,12 +341,13 @@ class BatchLQRTracker:
         discretization_time: float,
         ego_wheel_base: float,
     ) -> npt.NDArray[np.float64]:
-        """
-        This lateral controller determines a steering_rate input to minimize lateral errors at a lookahead time.
+        """Determines a steering_rate input to minimize lateral errors at a lookahead time.
+
         It requires a velocity sequence as a parameter to ensure linear time-varying lateral dynamics.
+
         :param initial_lateral_state_vector: The current lateral state of ego.
         :param velocity_profile: [m/s] The velocity over the entire self._tracking_horizon-step lookahead.
-        :param curvature_profile: [rad] The curvature over the entire self._tracking_horizon-step lookahead..
+        :param curvature_profile: [rad] The curvature over the entire self._tracking_horizon-step lookahead.
         :param discretization_time: [s] The time interval used for discretizing the continuous time dynamics.
         :param ego_wheel_base: The wheel base of the ego vehicle.
         :return: Steering rate [rad/s] command based on LQR.
@@ -422,9 +422,10 @@ class BatchLQRTracker:
         B: npt.NDArray[np.float64],
         g: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        This function uses LQR to find an optimal input to minimize tracking error in one step of dynamics.
+        """Uses LQR to find an optimal input to minimize tracking error in one step of dynamics.
+
         The dynamics are next_state = A @ initial_state + B @ input + g and our target is the reference_state.
+
         :param initial_state: The current state.
         :param reference_state: The desired state in 1 step (according to A,B,g dynamics).
         :param A: The state dynamics matrix.
@@ -445,9 +446,10 @@ class BatchLQRTracker:
         B: npt.NDArray[np.float64],
         g: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        This function uses LQR to find an optimal input to minimize tracking error in one step of dynamics.
+        """Uses LQR to find an optimal input to minimize tracking error in one step of dynamics.
+
         The dynamics are next_state = A @ initial_state + B @ input + g and our target is the reference_state.
+
         :param initial_state: The current state.
         :param A: The state dynamics matrix.
         :param B: The input dynamics matrix.

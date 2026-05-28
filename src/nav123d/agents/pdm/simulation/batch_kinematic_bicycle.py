@@ -13,8 +13,8 @@ def forward_integrate(
     delta: npt.NDArray[np.float64],
     sampling_time: Timestamp,
 ) -> npt.NDArray[np.float64]:
-    """
-    Performs a simple euler integration.
+    """Performs a simple euler integration.
+
     :param init: Initial state
     :param delta: The rate of change of the state.
     :param sampling_time: The time duration to propagate for.
@@ -24,9 +24,7 @@ def forward_integrate(
 
 
 class BatchKinematicBicycleModel:
-    """
-    A batch-wise operating class describing the kinematic motion model where the rear axle is the point of reference.
-    """
+    """Batch-wise kinematic bicycle motion model, referenced at the rear axle."""
 
     def __init__(
         self,
@@ -34,8 +32,8 @@ class BatchKinematicBicycleModel:
         accel_time_constant: float = 0.2,
         steering_angle_time_constant: float = 0.05,
     ):
-        """
-        Construct BatchKinematicBicycleModel.
+        """Construct BatchKinematicBicycleModel.
+
         :param max_steering_angle: [rad] Maximum absolute value steering angle allowed by model.
         :param accel_time_constant: low pass filter time constant for acceleration in s
         :param steering_angle_time_constant: low pass filter time constant for steering angle in s
@@ -45,8 +43,8 @@ class BatchKinematicBicycleModel:
         self._steering_angle_time_constant = steering_angle_time_constant
 
     def get_state_dot(self, states: npt.NDArray[np.float64], wheel_base: float) -> npt.NDArray[np.float64]:
-        """
-        Calculates the changing rate of state array representation.
+        """Calculates the rate of change of the state array representation.
+
         :param states: array describing the state of the ego-vehicle
         :param wheel_base: The wheel base of the vehicle
         :return: change rate across several state values
@@ -74,11 +72,10 @@ class BatchKinematicBicycleModel:
         command_states: npt.NDArray[np.float64],
         sampling_time: Timestamp,
     ) -> npt.NDArray[np.float64]:
-        """
-        This function applies some first order control delay/a low pass filter to acceleration/steering.
+        """Applies a first-order control delay (low-pass filter) to acceleration and steering.
 
-        :param state: Ego state
-        :param ideal_dynamic_state: The desired dynamic state for propagation
+        :param states: Ego state array
+        :param command_states: The desired dynamic state (controller commands) for propagation
         :param sampling_time: The time duration to propagate for
         :return: propagating_state including updated dynamic_state
         """
@@ -113,8 +110,8 @@ class BatchKinematicBicycleModel:
         sampling_time: Timestamp,
         ego_metadata: EgoStateSE3Metadata,
     ) -> npt.NDArray[np.float64]:
-        """
-        Propagates ego state array forward with motion model.
+        """Propagates the ego state array forward with the motion model.
+
         :param states: state array representation of the ego-vehicle
         :param command_states: command array representation of controller
         :param sampling_time: time delta to propagate as Timestamp
