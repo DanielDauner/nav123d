@@ -22,9 +22,10 @@ exp
 # lsf
 *.bsub
 
-# running scripts
+# dev
 scripts_dev/*
 visualization/*
+.coverage
 
 
 # Sphinx documentation

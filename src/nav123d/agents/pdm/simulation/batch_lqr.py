@@ -3,13 +3,13 @@ from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
+from py123d.geometry.utils.rotation_utils import normalize_angle
 
 from nav123d.agents.pdm.simulation.batch_lqr_utils import (
     _generate_profile_from_initial_condition_and_derivatives,
     get_velocity_curvature_profiles_with_derivatives_from_poses,
 )
 from nav123d.agents.pdm.utils.pdm_enums import DynamicStateIndex, StateIndex
-from nav123d.agents.pdm.utils.pdm_geometry_utils import normalize_angle
 
 
 class LateralStateIndex(IntEnum):

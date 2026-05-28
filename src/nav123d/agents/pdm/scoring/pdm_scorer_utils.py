@@ -6,7 +6,6 @@ from py123d.datatypes import BoxDetectionSE2
 from py123d.geometry import PoseSE2
 from shapely import LineString, Polygon
 
-# from nuplan.planning.simulation.observation.idm.utils import is_agent_behind, is_track_stopped
 from nav123d.agents.pdm.utils.pdm_constants import DYNAMIC_OBJECT_LABELS
 from nav123d.agents.pdm.utils.pdm_enums import StateIndex
 

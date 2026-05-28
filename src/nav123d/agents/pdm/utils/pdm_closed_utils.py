@@ -7,10 +7,10 @@ from py123d.api import MapAPI
 from py123d.datatypes import BaseMapSurfaceObject, EgoStateSE2, Lane, LaneGroup, MapLayer
 from py123d.geometry import OccupancyMap2D, PolylineSE2, PoseSE2Index, Vector2D
 from py123d.geometry.transform.transform_se2 import translate_se2_array_along_body_frame
+from py123d.geometry.utils.rotation_utils import normalize_angle
 from shapely.geometry import Point
 
 from nav123d.agents.pdm.utils.graph_search.dijkstra import Dijkstra
-from nav123d.agents.pdm.utils.pdm_geometry_utils import normalize_angle
 from nav123d.agents.pdm.utils.route_utils import route_lane_group_correction
 
 

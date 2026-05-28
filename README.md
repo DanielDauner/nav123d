@@ -29,29 +29,6 @@ The main branch contains the code for NAVSIM v2, used in the 2025 NAVSIM challen
 <br/>
 
 
-![image](https://github.com/user-attachments/assets/5966e9ca-5fcb-4cad-a686-eb8ef2bf943e)
-
-## Table of Contents
-
-1. [Highlights](#highlight)
-2. [Getting started](#gettingstarted)
-3. [Changelog](#changelog)
-4. [License and citation](#licenseandcitation)
-5. [Other resources](#otherresources)
-
-## Getting started <a name="gettingstarted"></a>
-
-- [Download and installation](docs/install.md)
-- [Understanding and creating agents](docs/agents.md)
-- [Understanding the data format and classes](docs/cache.md)
-- [Dataset splits vs. filtered training / test splits](docs/splits.md)
-- [Understanding the Extended PDM Score](docs/metrics.md)
-- [Understanding the traffic simulation](docs/traffic_agents.md)
-- [Submitting to the Leaderboard](docs/submission.md)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
 ## Citation <a name="licenseandcitation"></a>
 
 All assets and code in this repository are under the [Apache 2.0 license](./LICENSE) unless specified otherwise.
@@ -73,12 +50,5 @@ All assets and code in this repository are under the [Apache 2.0 license](./LICE
   year={2026}
 }
 ```
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-## Other resources <a name="otherresources"></a>
-
-- [SLEDGE](https://github.com/autonomousvision/sledge) | [tuPlan garage](https://github.com/autonomousvision/tuplan_garage) | [CARLA garage](https://github.com/autonomousvision/carla_garage) | [Survey on E2EAD](https://github.com/OpenDriveLab/End-to-end-Autonomous-Driving)
-- [PlanT](https://github.com/autonomousvision/plant) | [KING](https://github.com/autonomousvision/king) | [TransFuser](https://github.com/autonomousvision/transfuser) | [NEAT](https://github.com/autonomousvision/neat)
 
 <p align="right">(<a href="#top">back to top</a>)</p>

@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from nuplan.common.actor_state.state_representation import StateSE2
 from py123d.geometry import PoseSE2
 
 from nav123d.agents.pdm.utils.pdm_enums import PointIndex, SE2Index
@@ -57,51 +56,6 @@ def calculate_progress(path: List[PoseSE2]) -> List[float]:
     points_diff: npt.NDArray[np.float64] = np.concatenate(([x_diff], [y_diff]), axis=0, dtype=np.float64)
     progress_diff = np.append(0.0, np.linalg.norm(points_diff, axis=0))
     return np.cumsum(progress_diff, dtype=np.float64)  # type: ignore
-
-
-def convert_absolute_to_relative_se2_array(
-    origin: StateSE2, state_se2_array: npt.NDArray[np.float64]
-) -> npt.NDArray[np.float64]:
-    """
-    Converts an StateSE2 array from global to relative coordinates.
-    :param origin: origin pose of relative coords system
-    :param state_se2_array: array of SE2 states with (x,y,θ) in last dim
-    :return: SE2 coords array in relative coordinates
-    """
-    assert len(SE2Index) == state_se2_array.shape[-1]
-
-    theta = -origin.heading
-    origin_array = np.array([[origin.x, origin.y, origin.heading]], dtype=np.float64)
-
-    R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-
-    points_rel = state_se2_array - origin_array
-    points_rel[..., :2] = points_rel[..., :2] @ R.T
-    points_rel[:, 2] = normalize_angle(points_rel[:, 2])
-
-    return points_rel
-
-
-def convert_absolute_to_relative_point_array(
-    origin: StateSE2, point_array: npt.NDArray[np.float64]
-) -> npt.NDArray[np.float64]:
-    """
-    Converts an points array from global to relative coordinates.
-    :param origin: origin pose of relative coords system
-    :param points_array: array of points with (x,y) in last dim
-    :return: points coords array in relative coordinates
-    """
-    assert len(PointIndex) == point_array.shape[-1]
-
-    theta = -origin.heading
-    origin_array = np.array([[origin.x, origin.y, origin.heading]], dtype=np.float64)
-
-    R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-
-    points_rel = point_array - origin_array[..., :2]
-    points_rel[..., :2] @= R.T
-
-    return points_rel
 
 
 def se2_array_translate_longitudinally(se2_array: npt.NDArray[np.float64], distance: float) -> npt.NDArray[np.float64]:

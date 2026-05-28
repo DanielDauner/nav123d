@@ -2,8 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
-
-from nav123d.agents.pdm.utils.pdm_geometry_utils import normalize_angle
+from py123d.geometry.utils.rotation_utils import normalize_angle
 
 # Util functions for BatchLQRTracker
 # Code re-written based on nuPlan's implementation:
