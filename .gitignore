@@ -25,6 +25,7 @@ exp
 # dev
 scripts_dev/*
 visualization/*
+debug/*
 .coverage
 .claude
 
