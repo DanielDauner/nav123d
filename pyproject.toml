@@ -13,7 +13,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
 ]
 name = "nav123d"
-version = "0.0.1"
+version = "0.1.0"
 authors = [{ name = "Daniel Dauner", email = "daniel.dauner@gmail.com" }]
 description = "NAV123D: Cross-Dataset Non-Reactive Autonomous Vehicle Simulation and Benchmarking"
 readme = "README.md"
