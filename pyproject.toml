@@ -23,7 +23,8 @@ readme = "README.md"
 requires-python = ">=3.9,<3.13"
 license = {text = "Apache-2.0"}
 dependencies = [
-    "py123d==0.4.0",
+    "py123d>=0.5.0",
+    "numpy>=2.0.0",
     "torch>=2.2,<2.6",
     "torchvision>=0.17,<0.21",
     "lightning>=2.2,<3.0",
