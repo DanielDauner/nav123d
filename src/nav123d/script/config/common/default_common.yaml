@@ -1,0 +1,15 @@
+# Default common configs
+hydra:
+  job:
+    env_set:
+      HYDRA_FULL_ERROR: 1
+
+defaults:
+  - default_cache_settings
+  - default_dataset_paths
+  - execution: ray_executor
+  - scene_filter: all
+  - scene_builder: default_scene_builder
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: colorlog
+  - _self_
