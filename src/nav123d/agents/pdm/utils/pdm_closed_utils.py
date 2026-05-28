@@ -137,7 +137,7 @@ def _get_intersecting_lanes(
     return on_route_lanes, on_route_heading_errors
 
 
-def _get_starting_lane(
+def get_starting_lane(
     ego_state_se2: EgoStateSE2,
     route_lane_dict: Dict[int, Lane],
     drivable_area_map: OccupancyMap2D,
@@ -240,7 +240,7 @@ def get_centerline_as_polyline_se2(
     return PolylineSE2.from_array(stacked)
 
 
-def _get_proposal_paths(
+def get_proposal_paths(
     centerline_polyline_se2: PolylineSE2, lateral_offsets: Optional[List[float]]
 ) -> List[PolylineSE2]:
     """Builds proposal paths: centerline at index 0, plus optional lateral offsets.

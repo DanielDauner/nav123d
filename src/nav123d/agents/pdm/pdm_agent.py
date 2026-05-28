@@ -18,12 +18,12 @@ from nav123d.agents.pdm.proposal.pdm_proposal import PDMProposalManager
 from nav123d.agents.pdm.scoring.pdm_scorer import PDMScorer
 from nav123d.agents.pdm.simulation.pdm_simulator import PDMSimulator
 from nav123d.agents.pdm.utils.pdm_closed_utils import (
-    _get_proposal_paths,
-    _get_starting_lane,
     build_drivable_area_occupancy_map,
     build_route_dicts,
     correct_route_lane_groups,
     get_centerline_as_polyline_se2,
+    get_proposal_paths,
+    get_starting_lane,
 )
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
 from nav123d.geometry.trajectory import Trajectory, TrajectorySampling
@@ -193,7 +193,7 @@ class PDMAgent(BaseAgent):
         assert self._route_lane_dict is not None and self._drivable_area_map is not None, (
             "Planner not initialized properly."
         )
-        current_lane = _get_starting_lane(ego_state_se2, self._route_lane_dict, self._drivable_area_map)
+        current_lane = get_starting_lane(ego_state_se2, self._route_lane_dict, self._drivable_area_map)
 
         # TODO: Find additional conditions to trigger re-planning
         create_new_proposals = self._iteration == 0
@@ -205,7 +205,7 @@ class PDMAgent(BaseAgent):
                 self._route_lane_dict,
                 ego_state_se2=ego_state_se2,
             )
-            proposal_paths: List[PolylineSE2] = _get_proposal_paths(self._centerline, self._lateral_offsets)
+            proposal_paths: List[PolylineSE2] = get_proposal_paths(self._centerline, self._lateral_offsets)
             self._proposal_manager = PDMProposalManager(
                 lateral_proposals=proposal_paths,
                 longitudinal_policies=self._idm_policies,
