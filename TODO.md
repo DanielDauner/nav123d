@@ -6,8 +6,6 @@ api:
 - bug fixes to make things stable on other datasets.
 - fix docstrings
 
-common:
-- Remove and migrate all code somewhere else.
 
 datatypes:
 - Move trajectory here.

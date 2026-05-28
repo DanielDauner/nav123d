@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
@@ -90,6 +90,6 @@ class TransfuserAgent(BaseTorchAgent):
         """Inherited, see superclass."""
         return torch.optim.Adam(self._transfuser_model.parameters(), lr=self._lr)
 
-    def get_training_callbacks(self) -> List[pl.Callback]:
+    def get_training_callbacks(self) -> List[L.Callback]:
         """Inherited, see superclass."""
         return [TransfuserCallback(self._config), TimeLoggingCallback()]

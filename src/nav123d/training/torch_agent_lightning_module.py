@@ -1,12 +1,12 @@
 from typing import Dict, Tuple
 
-import pytorch_lightning as pl
+import lightning as L
 from torch import Tensor
 
 from nav123d.agents.base_torch_agent import BaseTorchAgent
 
 
-class TorchAgentLightningModule(pl.LightningModule):
+class TorchAgentLightningModule(L.LightningModule):
     """Pytorch lightning wrapper for learnable agent."""
 
     def __init__(self, agent: BaseTorchAgent):

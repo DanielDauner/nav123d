@@ -2,7 +2,7 @@ import logging
 from typing import List, Tuple
 
 import hydra
-import pytorch_lightning as pl
+import lightning as L
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from py123d.api import SceneAPI
@@ -29,7 +29,7 @@ def main(cfg: DictConfig) -> None:
     :param cfg: omegaconf dictionary
     """
 
-    pl.seed_everything(cfg.seed, workers=True)
+    L.seed_everything(cfg.seed, workers=True)
     logger.info(f"Global Seed set to {cfg.seed}")
 
     logger.info(f"Path where all results are stored: {cfg.output_dir}")
@@ -71,7 +71,7 @@ def main(cfg: DictConfig) -> None:
     logger.info("Num validation samples: %d", len(val_data))  # type: ignore
 
     logger.info("Building Trainer")
-    trainer = pl.Trainer(**cfg.trainer.params, callbacks=torch_agent.get_training_callbacks())
+    trainer = L.Trainer(**cfg.trainer.params, callbacks=torch_agent.get_training_callbacks())
 
     logger.info("Starting Training")
     trainer.fit(model=lightning_module, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)

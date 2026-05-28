@@ -3,8 +3,8 @@ from __future__ import annotations
 import abc
 from typing import Dict, List, Union
 
+import lightning as L
 import numpy as np
-import pytorch_lightning as pl
 import torch
 from py123d.api import SceneAPI
 from torch import Tensor
@@ -95,7 +95,7 @@ class BaseTorchAgent(torch.nn.Module, BaseAgent):
         timestamps = ego_state_se3.timestamp.time_us + np.arange(1, num_poses + 1) * int(dt * 1e6)
         return TrajectorySE2(pose_se2_array=poses_se2_array, timestamps=timestamps)
 
-    def get_training_callbacks(self) -> List[pl.Callback]:
+    def get_training_callbacks(self) -> List[L.Callback]:
         """
         Returns a list of pytorch-lightning callbacks that are used during training.
         See navsim.planning.training.callbacks for examples.

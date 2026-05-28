@@ -42,7 +42,7 @@ scikit-learn==1.2.2 # TODO: check if needed.
 # TODO: Add boundaries to make compatible with 3.9-3.12
 torch==2.0.1
 torchvision==0.15.2
-pytorch-lightning==2.2.1
+lightning==2.2.1
 tensorboard==2.16.2
 # protobuf==4.25.3 # Why protobuf?
 

@@ -1,9 +1,9 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
 import cv2
+import lightning as L
 import numpy as np
 import numpy.typing as npt
-import pytorch_lightning as pl
 import torch
 import torchvision.utils as vutils
 from py123d.geometry import BoundingBoxSE2
@@ -13,7 +13,7 @@ from py123d.visualization.color.default import BOX_DETECTION_CONFIG, CENTERLINE_
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 
 
-class TransfuserCallback(pl.Callback):
+class TransfuserCallback(L.Callback):
     """Visualization Callback for TransFuser during training."""
 
     def __init__(
@@ -37,10 +37,10 @@ class TransfuserCallback(pl.Callback):
         self._num_rows = num_rows
         self._num_columns = num_columns
 
-    def on_validation_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_validation_epoch_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """Inherited, see superclass."""
         device = pl_module.device
         for idx_plot in range(self._num_plots):
@@ -57,17 +57,17 @@ class TransfuserCallback(pl.Callback):
             grid = self._visualize_model(features, targets, predictions)
             trainer.logger.experiment.add_image(f"val_plot_{idx_plot}", grid, global_step=trainer.current_epoch)
 
-    def on_test_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_test_epoch_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_test_epoch_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """Inherited, see superclass."""
 
-    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_train_epoch_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """Inherited, see superclass."""
 
     def on_train_epoch_end(
-        self, trainer: pl.Trainer, pl_module: pl.LightningModule, unused: Optional[Any] = None
+        self, trainer: L.Trainer, pl_module: L.LightningModule, unused: Optional[Any] = None
     ) -> None:
         """Inherited, see superclass."""
 
