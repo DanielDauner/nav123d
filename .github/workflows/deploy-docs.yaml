@@ -2,7 +2,8 @@ name: docs
 
 on:
   push:
-    branches: [main, dev_v0.0.1]
+    branches:
+      - main
   workflow_dispatch:  # Allows manual triggering
 
 permissions:
