@@ -10,16 +10,16 @@ class TorchAgentLightningModule(L.LightningModule):
     """Pytorch lightning wrapper for learnable agent."""
 
     def __init__(self, agent: BaseTorchAgent):
-        """
-        Initialise the lightning module wrapper.
+        """Initialise the lightning module wrapper.
+
         :param agent: agent interface in NAVSIM
         """
         super().__init__()
         self.agent = agent
 
     def _step(self, batch: Tuple[Dict[str, Tensor], Dict[str, Tensor]], logging_prefix: str) -> Tensor:
-        """
-        Propagates the model forward and backwards and computes/logs losses and metrics.
+        """Runs the forward pass and computes/logs the loss for one batch.
+
         :param batch: tuple of dictionaries for feature and target tensors (batched)
         :param logging_prefix: prefix where to log step
         :return: scalar loss
@@ -31,8 +31,8 @@ class TorchAgentLightningModule(L.LightningModule):
         return loss
 
     def training_step(self, batch: Tuple[Dict[str, Tensor], Dict[str, Tensor]], batch_idx: int) -> Tensor:
-        """
-        Step called on training samples
+        """Step called on training samples.
+
         :param batch: tuple of dictionaries for feature and target tensors (batched)
         :param batch_idx: index of batch (ignored)
         :return: scalar loss
@@ -40,8 +40,8 @@ class TorchAgentLightningModule(L.LightningModule):
         return self._step(batch, "train")
 
     def validation_step(self, batch: Tuple[Dict[str, Tensor], Dict[str, Tensor]], batch_idx: int):
-        """
-        Step called on validation samples
+        """Step called on validation samples.
+
         :param batch: tuple of dictionaries for feature and target tensors (batched)
         :param batch_idx: index of batch (ignored)
         :return: scalar loss

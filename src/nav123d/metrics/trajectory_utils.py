@@ -2,7 +2,7 @@ import numpy as np
 from py123d.datatypes import EgoStateSE2
 from py123d.geometry.transform import rel_to_abs_se2_array
 
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 
 
 def resample_trajectory_se2(
@@ -12,12 +12,14 @@ def resample_trajectory_se2(
     convert_to_absolute: bool = False,
     add_initial_ego_pose: bool = True,
 ) -> TrajectorySE2:
-    """
-    Resample trajectory to given sampling specification and return as SE2 array.
+    """Resample a trajectory to the given sampling specification.
+
     :param trajectory: input trajectory
     :param sampling: sampling specification for resampling the trajectory
     :param initial_ego_state_se2: initial ego state as SE2
-    :return: resampled trajectory as SE2 array
+    :param convert_to_absolute: if True, convert the input from ego-relative to absolute poses first, defaults to False
+    :param add_initial_ego_pose: if True, include the initial ego pose as the first sample, defaults to True
+    :return: resampled trajectory as SE2
     """
 
     if convert_to_absolute:

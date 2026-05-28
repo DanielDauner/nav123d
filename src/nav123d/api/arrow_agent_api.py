@@ -148,10 +148,12 @@ class ArrowAgentSceneAPI(AgentAPI):
     # ------------------------------------------------------------------------------------------------------------------
 
     def _check_iteration(self, iteration: int) -> None:
+        """Raises PermissionError if a future iteration is accessed without future access."""
         if not self._allows_future and iteration > 0:
             raise PermissionError(f"Future iteration {iteration} not allowed for {type(self).__name__}.")
 
     def _check_modality(self, modality_type: Union[str, ModalityType]) -> None:
+        """Raises PermissionError if the modality is outside the agent's allowed set."""
         if self._allowed_modalities is None:
             return
         mt = ModalityType.from_arbitrary(modality_type)
@@ -162,6 +164,7 @@ class ArrowAgentSceneAPI(AgentAPI):
             )
 
     def _check_timestamp_not_future(self, timestamp: Union[Timestamp, int]) -> None:
+        """Raises PermissionError if the timestamp lies after the current iteration without future access."""
         if self._allows_future:
             return
         current_ts = self._get_timestamp_at_iteration_unchecked(0)
@@ -182,6 +185,7 @@ class ArrowAgentSceneAPI(AgentAPI):
         return metadata.initial_idx + iteration * metadata.target_iteration_stride
 
     def _get_log_dir_metadatas(self) -> LogDirectoryMetadata:
+        """Parses and returns the log directory metadata (modality and log metadata)."""
         return parse_log_directory_metadata(self._log_dir)
 
     def _get_timestamp_at_iteration_unchecked(self, iteration: int) -> Timestamp:

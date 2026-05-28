@@ -10,17 +10,20 @@ from nav123d.agents.pdm.scoring.pdm_scorer import PDMScorer
 from nav123d.agents.pdm.simulation.pdm_simulator import PDMSimulator
 from nav123d.agents.pdm.utils.pdm_enums import StateIndex
 from nav123d.api import scene_api_to_agent_api
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.metrics.base_metric import BaseMetric
 from nav123d.metrics.trajectory_utils import resample_trajectory_se2
 
 
 class PDMMetric(BaseMetric):
+    """Scores an agent trajectory with the PDM-Closed closed-loop simulation and scorer."""
+
     def __init__(self) -> None:
+        """Constructor of PDMMetric, fixing the scoring sampling to 4s at 0.1s intervals."""
         self._score_trajectory_sampling = TrajectorySampling(time_horizon=4, interval_length=0.1)
-        # self._pdm_planner = get_pdm_closed_planner()
 
     def compute_metric(self, scene_api: SceneAPI, **kwargs) -> dict:
+        """Inherited, see superclass."""
         assert "agent_trajectory" in kwargs, "Missing required argument: agent_trajectory"
         agent_trajectory = kwargs["agent_trajectory"]
         assert isinstance(agent_trajectory, TrajectorySE2), "Argument 'agent_trajectory' must be of type TrajectorySE2"
@@ -98,10 +101,10 @@ class PDMMetric(BaseMetric):
 
 
 def _convert_trajectory_to_state_array(trajectories: List[TrajectorySE2]) -> npt.NDArray[np.float64]:
-    """
-    Convert trajectory to state array representation for PDM modules.
-    :param trajectory: input trajectory
-    :return: trajectory as state array
+    """Convert trajectories to a stacked state array representation for PDM modules.
+
+    :param trajectories: input trajectories (all with the same number of poses)
+    :return: trajectories as a state array
     """
     # TODO@DanielDauner: This is a temporary solution, we should refactor the PDM modules to work with TrajectorySE2 directly.
     num_poses_ = trajectories[0].pose_se2_array.shape[0]

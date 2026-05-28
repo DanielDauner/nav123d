@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_metrics(cfg_metrics: DictConfig) -> List[BaseMetric]:
+    """Instantiates the list of metrics from config and validates their types.
+
+    :param cfg_metrics: Hydra/omegaconf config group mapping metric names to metric configs
+    :return: list of instantiated BaseMetric
+    """
     logger.info("Building Metrics...")
     metrics: List[BaseMetric] = []
     for metric_cfg in cfg_metrics.values():

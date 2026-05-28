@@ -16,7 +16,7 @@ from py123d.script.builders.utils.utils_type import validate_type
 
 from nav123d.agents.base_agent import BaseAgent
 from nav123d.api import scene_api_to_agent_api
-from nav123d.geometry.trajectory import TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySE2
 from nav123d.script.builders.metric_builder import build_metrics
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,9 @@ CONFIG_NAME = "default_evaluation"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig) -> None:
-    """
-    Main entrypoint for evaluating an agent.
-    :param cfg: omegaconf dictionary
+    """Main entrypoint for evaluating an agent.
+
+    :param cfg: Hydra/omegaconf config (see config/evaluation/default_evaluation.yaml)
     """
 
     logger.info(f"Path where all results are stored: {cfg.output_dir}")
@@ -82,6 +82,11 @@ def _evaluate_scenes(
 
 
 def _save_results(results: List[Dict[str, object]], cfg: DictConfig) -> None:
+    """Appends an average row and writes the per-scene results to disk.
+
+    :param results: per-scene metric dicts
+    :param cfg: Hydra/omegaconf config providing output_dir, results_file_stem and output_format
+    """
     df = pd.DataFrame(results)
     numeric_cols = df.select_dtypes(include="number").columns
     average_row: Dict[str, object] = {"scene_uuid": "average"}

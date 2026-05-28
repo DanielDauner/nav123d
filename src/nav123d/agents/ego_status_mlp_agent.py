@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilder, BaseTorchAgent
 from nav123d.agents.utils import sample_ego_trajectory_from_api
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 class EgoStatusMLPAgent(BaseTorchAgent):

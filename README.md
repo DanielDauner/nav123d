@@ -5,31 +5,29 @@
     <img alt="Logo" src="https://kesai.eu/py123d/_static/123D_logo_transparent_black.svg" width="500">
   </picture>
   <h2 align="center">Cross-Dataset Reimplementation of NAVSIM</h2>
-  <h2 align="center">"Because good things come in three." - Daniel</h2>
-  <h3 align="center"><a href="https://arxiv.org/abs/2605.08084">Paper</a> | <a href="https://youtu.be/Q4q29fpXnx8">Video</a> | <a href="https://kesai.eu/py123d/">Documentation</a></h3>
+  <h3 align="center"><a href="https://arxiv.org/abs/2406.15349">Paper</a> | <a href="https://youtu.be/Q4q29fpXnx8">Video</a> | <a href="https://danieldauner.github.io/nav123d/">Documentation</a></h3>
+  <h4 align="center"><i>"Because good things come in 123D."</i></h4>
 </h1>
 
-</div>
+> 🏗️ **Under construction.** Expect things to change, break, and improve as we build it out. Comments, suggestions, and contributions are very welcome!
+
+`nav123d` reimplements [NAVSIM](https://arxiv.org/abs/2406.15349) — data-driven, non-reactive autonomous-vehicle simulation and benchmarking — on top of the [123D](https://arxiv.org/abs/2605.08084) unified data framework, so the same agents, metrics, and training/evaluation pipeline run across datasets. It ships baseline agents (constant-velocity, ego-status MLP, PDM, TransFuser) together with training and evaluation entry points.
+
+## Installation
+
+```sh
+# Editable pip install (Python 3.9 - 3.12)
+pip install -e .
+
+# or a conda environment
+conda env create -f environment.yml
+conda activate nav123d
+```
+
+See the [installation docs](docs/installation.md) for dataset setup and environment variables.
 
 
-The main branch contains the code for NAVSIM v2, used in the 2025 NAVSIM challenge. <b style='color:red;'>For NAVSIM v1, as well as its `navtest` leaderboard, which are also part of this repository, please check the [v1.1 branch](https://github.com/autonomousvision/navsim/tree/v1.1).</b>
-
-<br/>
-
-> [**NAVSIM: Data-Driven Non-Reactive Autonomous Vehicle Simulation and Benchmarking**](https://arxiv.org/abs/2406.15349)
->
-> [Daniel Dauner](https://danieldauner.github.io/)<sup>1,2</sup>, [Marcel Hallgarten](https://mh0797.github.io/)<sup>1,5</sup>, [Tianyu Li](https://github.com/sephyli)<sup>3</sup>, [Xinshuo Weng](https://xinshuoweng.com/)<sup>4</sup>, [Zhiyu Huang](https://mczhi.github.io/)<sup>4,6</sup>, [Zetong Yang](https://scholar.google.com/citations?user=oPiZSVYAAAAJ)<sup>3</sup>,\
-> [Hongyang Li](https://lihongyang.info/)<sup>3</sup>, [Igor Gilitschenski](https://www.gilitschenski.org/igor/)<sup>7,8</sup>, [Boris Ivanovic](https://www.borisivanovic.com/)<sup>4</sup>, [Marco Pavone](https://web.stanford.edu/~pavone/)<sup>4,9</sup>, [Andreas Geiger](https://www.cvlibs.net/)<sup>1,2</sup>, and [Kashyap Chitta](https://kashyap7x.github.io/)<sup>1,2</sup>  <br>
->
-> <sup>1</sup>University of Tübingen, <sup>2</sup>Tübingen AI Center, <sup>3</sup>OpenDriveLab at Shanghai AI Lab, <sup>4</sup>NVIDIA Research\
-> <sup>5</sup>Robert Bosch GmbH, <sup>6</sup>Nanyang Technological University, <sup>7</sup>University of Toronto, <sup>8</sup>Vector Institute, <sup>9</sup>Stanford University
->
-> Advances in Neural Information Processing Systems (NeurIPS), 2024 \
-> Track on Datasets and Benchmarks
-<br/>
-
-
-## Citation <a name="licenseandcitation"></a>
+## Citation
 
 All assets and code in this repository are under the [Apache 2.0 license](./LICENSE) unless specified otherwise.
 

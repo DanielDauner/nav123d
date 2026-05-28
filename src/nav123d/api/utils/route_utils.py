@@ -158,7 +158,7 @@ def _next_intersection_heading_delta(
 
     pose_entry = route_polyline_se2.interpolate(float(entry_s))
     pose_exit = route_polyline_se2.interpolate(float(exit_s))
-    return _wrap_to_pi(pose_exit.yaw - pose_entry.yaw)
+    return _wrap_to_pi(pose_exit.yaw - pose_entry.yaw)  # type: ignore[union-attr]
 
 
 def _wrap_to_pi(angle_rad: float) -> float:
@@ -166,6 +166,14 @@ def _wrap_to_pi(angle_rad: float) -> float:
 
 
 def get_route_lane_group_ids_from_api(scene_api: SceneAPI) -> List[int]:
+    """Returns the on-route lane group ids for the scene.
+
+    Uses nuPlan's logged route roadblocks when available, otherwise infers the route via
+    :func:`_infer_route_lane_group_ids`.
+
+    :param scene_api: scene interface providing map and ego state access
+    :return: ordered on-route lane group ids (empty if none can be determined)
+    """
     route_lane_group_ids: List[int] = []
     if scene_api.get_map_metadata() is not None:
         dataset_name = scene_api.get_log_metadata().dataset
@@ -181,6 +189,14 @@ def get_route_lane_group_ids_from_api(scene_api: SceneAPI) -> List[int]:
 
 
 def _infer_route_lane_group_ids(scene_api: SceneAPI) -> List[int]:
+    """Infers the route lane group ids via shortest-path search on the lane-group graph.
+
+    Looks up the ego position ``_TARGET_ROUTE_LOOKAHEAD_TIME_S`` ahead (via an oracle), then finds
+    the shortest lane-group path from the current position's candidates to the look-ahead candidates.
+
+    :param scene_api: Arrow-backed scene interface
+    :return: lane group ids along the inferred route (empty if no path is found)
+    """
     # Local import to avoid the route_utils → arrow_agent_api → base_agent_api → route_utils cycle.
     from nav123d.api.arrow_agent_api import ArrowAgentSceneAPI, ArrowOracleAgentAPI
 

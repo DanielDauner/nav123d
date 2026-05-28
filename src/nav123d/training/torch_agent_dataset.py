@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class TorchAgentDataset(Dataset):
+    """Dataset that builds agent features/targets per scene, optionally caching them to disk."""
+
     def __init__(
         self,
         scenes: List[SceneAPI],
@@ -31,6 +33,16 @@ class TorchAgentDataset(Dataset):
         force_cache_computation: bool = False,
         dataset_type: Literal["train", "val", "test"] = "train",
     ):
+        """Constructor of TorchAgentDataset.
+
+        :param scenes: scenes to build samples from
+        :param feature_builders: builders run on the agent input to produce features
+        :param target_builders: builders run on the ground-truth scene to produce targets
+        :param observation_type: observation type controlling agent access to each scene
+        :param cache_path: directory to read/write the feature-target cache, or None to compute on-the-fly
+        :param force_cache_computation: if True, recompute and overwrite cached samples, defaults to False
+        :param dataset_type: dataset split ("train", "val" or "test"), defaults to "train"
+        """
         assert dataset_type in {"train", "val", "test"}, "dataset_type must be either 'train' or 'val' or 'test'"
 
         self._scenes = scenes
@@ -52,9 +64,9 @@ class TorchAgentDataset(Dataset):
             self.cache_dataset()
 
     def _cache_scene_with_uuid(self, scene: SceneAPI) -> None:
-        """
-        Helper function to compute feature / targets and save in cache.
-        :param scene_uuid: unique identifier of scene to cache
+        """Computes features/targets for a scene and saves them to the cache.
+
+        :param scene: scene to cache
         """
         assert self._cache_path is not None, "Dataset did not receive a cache path!"
 
@@ -85,14 +97,12 @@ class TorchAgentDataset(Dataset):
             self._cache_scene_with_uuid(scene)
 
     def __len__(self) -> int:
-        """
-        :return: number of samples to load
-        """
+        """:return: number of samples to load."""
         return len(self._scenes)
 
     def __getitem__(self, idx: int) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
-        """
-        Get features or targets either from cache or computed on-the-fly.
+        """Get features and targets either from cache or computed on-the-fly.
+
         :param idx: index of sample to load.
         :return: tuple of feature and target dictionary
         """
@@ -130,6 +140,13 @@ class TorchAgentCachedDataset(Dataset):
         target_builders: List[BaseTargetBuilder],
         dataset_type: Literal["train", "val", "test"] = "train",
     ):
+        """Constructor of TorchAgentCachedDataset.
+
+        :param cache_path: directory containing the precomputed feature-target cache
+        :param feature_builders: builders whose cached features to load
+        :param target_builders: builders whose cached targets to load
+        :param dataset_type: dataset split ("train", "val" or "test"), defaults to "train"
+        """
         assert Path(cache_path).is_dir(), f"Cache path {cache_path} does not exist!"
         assert dataset_type in {"train", "val", "test"}, "dataset_type must be either 'train' or 'val' or 'test'"
 
@@ -147,14 +164,12 @@ class TorchAgentCachedDataset(Dataset):
         self._scene_uuids = list(self._valid_cache_paths.keys())
 
     def __len__(self) -> int:  # type: ignore
-        """
-        :return: number of samples to load
-        """
+        """:return: number of samples to load."""
         return len(self._scene_uuids)
 
     def __getitem__(self, idx: int) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
-        """
-        Loads and returns pair of feature and target dict from data.
+        """Loads and returns a pair of feature and target dicts from the cache.
+
         :param idx: index of sample to load.
         :return: tuple of feature and target dictionary
         """

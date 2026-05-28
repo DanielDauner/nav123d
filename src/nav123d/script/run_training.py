@@ -24,9 +24,9 @@ CONFIG_NAME = "default_training"
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
 def main(cfg: DictConfig) -> None:
-    """
-    Main entrypoint for training an agent.
-    :param cfg: omegaconf dictionary
+    """Main entrypoint for training an agent.
+
+    :param cfg: Hydra/omegaconf config (see config/training/default_training.yaml)
     """
 
     L.seed_everything(cfg.seed, workers=True)
@@ -80,7 +80,13 @@ def main(cfg: DictConfig) -> None:
 def build_datasets(
     cfg: DictConfig, agent: BaseTorchAgent, executor: Executor
 ) -> Tuple[TorchAgentDataset, TorchAgentDataset]:
-    """TODO"""
+    """Builds the train and validation datasets from the scene builder and scene filters.
+
+    :param cfg: Hydra/omegaconf config
+    :param agent: torch agent whose feature/target builders define the samples
+    :param executor: executor used to load scenes in parallel
+    :return: tuple of (train dataset, validation dataset)
+    """
 
     # 1. Build training and validation scenes using scene builder and filter from hydra modules.
     scene_builder = build_scene_builder(cfg.scene_builder)

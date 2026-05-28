@@ -15,10 +15,11 @@ PROXIMITY_ABS_TOL = 1e-10
 
 
 class TrajectorySampling:
-    """
-    Trajectory sampling config. Provide any two of (num_poses, time_horizon, interval_length) and the third is
-        deduced; passing all three is allowed if they are consistent. After construction all three attributes
-        are guaranteed to be set.
+    """Trajectory sampling config.
+
+    Provide any two of (num_poses, time_horizon, interval_length) and the third is deduced; passing
+    all three is allowed if they are consistent. After construction all three attributes are
+    guaranteed to be set.
 
     TODO: Update to use py123d conventions.
     """
@@ -35,6 +36,12 @@ class TrajectorySampling:
         time_horizon: Optional[float] = None,
         interval_length: Optional[float] = None,
     ) -> None:
+        """Constructor of TrajectorySampling. See the class docstring for the deduction rules.
+
+        :param num_poses: number of poses in the trajectory
+        :param time_horizon: [s] total time horizon of the trajectory
+        :param interval_length: [s] time between consecutive poses
+        """
         if num_poses is not None and not isinstance(num_poses, int):
             raise ValueError(f"num_poses was defined but it is not int. Instead {type(num_poses)}!")
         time_horizon = float(time_horizon) if time_horizon is not None else None
@@ -73,9 +80,7 @@ class TrajectorySampling:
 
     @property
     def step_time(self) -> float:
-        """
-        :return: [s] The time difference between two poses.
-        """
+        """:return: [s] The time difference between two poses."""
         return self.interval_length
 
     def __hash__(self) -> int:
@@ -92,7 +97,7 @@ class TrajectorySampling:
 
 
 class TrajectorySE2:
-    """Trajectory dataclass in NAVSIM."""
+    """Timestamped trajectory of SE2 poses (x, y, yaw)."""
 
     pose_se2_array: npt.NDArray[np.float64]
     timestamps: npt.NDArray[np.int64]  # absolute timestamps in microseconds
@@ -103,6 +108,11 @@ class TrajectorySE2:
         timestamps: npt.NDArray[np.int64],
         # trajectory_sampling: Optional[TrajectorySampling] = None,
     ) -> None:
+        """Constructor of TrajectorySE2.
+
+        :param pose_se2_array: array of (x, y, yaw) poses
+        :param timestamps: absolute timestamps in microseconds, one per pose
+        """
         # Unwrap yaw so interpolation sweeps the short way across the ±π boundary.
         pose_se2_array[:, PoseSE2Index.YAW] = np.unwrap(pose_se2_array[:, PoseSE2Index.YAW], axis=0)
         self.pose_se2_array = pose_se2_array
@@ -110,12 +120,21 @@ class TrajectorySE2:
 
     @property
     def polyline_se2(self) -> PolylineSE2:
+        """:return: the trajectory poses as a PolylineSE2."""
         return PolylineSE2.from_array(self.pose_se2_array)
 
     def interpolate(
         self,
         timestamp: Union[int, np.int64, npt.NDArray[np.int64]],
     ) -> npt.NDArray[np.float64]:
+        """Interpolates the trajectory poses at the given timestamp(s).
+
+        Timestamps outside the trajectory range are clipped (with a warning). Yaw is interpolated
+        on the unwrapped angle and re-normalized to [-π, π].
+
+        :param timestamp: absolute timestamp(s) in microseconds to sample at
+        :return: interpolated (x, y, yaw) pose array
+        """
         # Shift to zero-origin and convert µs -> s before float cast: raw unix-microsecond
         # int64 values are ~1.7e15, eating ~16 of float64's significant digits and risking
         # catastrophic cancellation inside interp1d's weight computation.
@@ -141,7 +160,7 @@ class TrajectorySE2:
 
 
 class TrajectorySE3:
-    """Trajectory dataclass in NAVSIM."""
+    """Timestamped trajectory of SE3 poses."""
 
 
 Trajectory = Union[TrajectorySE2, TrajectorySE3]

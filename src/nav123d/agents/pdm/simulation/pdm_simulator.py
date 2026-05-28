@@ -5,7 +5,7 @@ from py123d.datatypes import EgoStateSE2, Timestamp
 from nav123d.agents.pdm.simulation.batch_kinematic_bicycle import BatchKinematicBicycleModel
 from nav123d.agents.pdm.simulation.batch_lqr import BatchLQRTracker
 from nav123d.agents.pdm.utils.pdm_array_representation import ego_state_to_state_array
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 class PDMSimulator:

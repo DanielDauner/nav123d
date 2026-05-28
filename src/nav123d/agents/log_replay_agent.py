@@ -1,7 +1,7 @@
 from nav123d.agents.base_agent import BaseAgent
 from nav123d.agents.utils import sample_ego_trajectory_from_api
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
-from nav123d.geometry.trajectory import Trajectory, TrajectorySampling
+from nav123d.datatypes.trajectory import Trajectory, TrajectorySampling
 
 
 class LogReplayAgent(BaseAgent):

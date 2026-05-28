@@ -5,13 +5,16 @@ from py123d.api import SceneAPI
 from py123d.geometry import PoseSE2Index
 
 from nav123d.agents.utils import sample_ego_trajectory_from_api
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 from nav123d.metrics.base_metric import BaseMetric
 from nav123d.metrics.trajectory_utils import resample_trajectory_se2
 
 
 class DisplacementMetric(BaseMetric):
+    """Computes displacement and heading errors (ADE, FDE, AHE, FHE) against the logged ego trajectory."""
+
     def __init__(self) -> None:
+        """Constructor of DisplacementMetric, fixing the scoring sampling to 4s at 0.5s intervals."""
         self._score_trajectory_sampling = TrajectorySampling(time_horizon=4, interval_length=0.5)
 
         self._metrics = {"ade": _ade, "fde": _fde, "ahe": _ahe, "fhe": _fhe}

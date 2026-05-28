@@ -7,7 +7,7 @@ from torch import nn
 
 from nav123d.agents.transfuser.transfuser_backbone import TransfuserBackbone
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 class TransfuserModel(nn.Module):

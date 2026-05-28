@@ -14,7 +14,7 @@ from nav123d.agents.pdm.observation.pdm_observation import PDMObservation
 from nav123d.agents.pdm.proposal.pdm_proposal import PDMProposalManager
 from nav123d.agents.pdm.utils.pdm_constants import DYNAMIC_OBJECT_LABELS
 from nav123d.agents.pdm.utils.pdm_enums import LeadingAgentIndex, StateIDMIndex, StateIndex
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 
 
 @dataclass

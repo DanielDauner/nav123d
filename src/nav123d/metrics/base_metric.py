@@ -4,7 +4,7 @@ from py123d.api import SceneAPI
 
 
 class BaseMetric(abc.ABC):
-    "TODO: add implementation"
+    """Abstract base class for scene-level metrics."""
 
     @abc.abstractmethod
     def compute_metric(self, scene_api: SceneAPI, **kwargs) -> dict:

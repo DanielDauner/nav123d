@@ -7,7 +7,7 @@ from py123d.geometry import PoseSE2Index
 from py123d.geometry.transform import rel_to_abs_se2_array
 
 from nav123d.agents.pdm.scoring.pdm_scorer import PDMScorer
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 
 
 class PDMEmergencyBrake:

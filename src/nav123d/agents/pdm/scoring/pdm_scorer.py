@@ -28,7 +28,7 @@ from nav123d.agents.pdm.utils.pdm_enums import (
     StateIndex,
     WeightedMetricIndex,
 )
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 @dataclass

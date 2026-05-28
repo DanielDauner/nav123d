@@ -17,7 +17,7 @@ from nav123d.agents.base_torch_agent import BaseFeatureBuilder, BaseTargetBuilde
 from nav123d.agents.transfuser.transfuser_config import TransfuserConfig
 from nav123d.agents.utils import sample_ego_trajectory_from_api
 from nav123d.api.base_agent_api import AgentAPI
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 class TransfuserFeatureBuilder(BaseFeatureBuilder):

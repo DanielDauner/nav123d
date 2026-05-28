@@ -11,7 +11,7 @@ from torch import Tensor
 
 from nav123d.agents.base_agent import BaseAgent
 from nav123d.api.base_agent_api import AgentAPI
-from nav123d.geometry.trajectory import Trajectory, TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import Trajectory, TrajectorySampling, TrajectorySE2
 
 
 class BaseTorchAgent(torch.nn.Module, BaseAgent):

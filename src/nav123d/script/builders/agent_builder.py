@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_agent(cfg: DictConfig) -> BaseAgent:
+    """Instantiates the agent from config and validates its type.
+
+    :param cfg: Hydra/omegaconf config with an ``agent`` group
+    :return: instantiated BaseAgent
+    """
     logger.info("Building Agent...")
     agent: BaseAgent = instantiate(cfg.agent)
     validate_type(agent, BaseAgent)
@@ -19,6 +24,11 @@ def build_agent(cfg: DictConfig) -> BaseAgent:
 
 
 def build_torch_agent(cfg: DictConfig) -> BaseTorchAgent:
+    """Instantiates the torch agent from config and validates its type.
+
+    :param cfg: Hydra/omegaconf config with an ``agent`` group
+    :return: instantiated BaseTorchAgent
+    """
     logger.info("Building Torch Agent...")
     agent: BaseTorchAgent = instantiate(cfg.agent)
     validate_type(agent, BaseTorchAgent)

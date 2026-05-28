@@ -15,7 +15,7 @@ from py123d.geometry.utils.bounding_box_utils import bbse2_array_to_corners_arra
 from shapely.geometry import Polygon
 
 from nav123d.agents.pdm.observation.pdm_object_manager import PDMObjectManager
-from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.datatypes.trajectory import TrajectorySampling
 
 
 class PDMObservation:

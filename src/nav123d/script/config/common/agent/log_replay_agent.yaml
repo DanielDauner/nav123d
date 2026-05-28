@@ -2,7 +2,7 @@ _target_: nav123d.agents.log_replay_agent.LogReplayAgent
 _convert_: 'all'
 
 trajectory_sampling:
-  _target_: nav123d.geometry.trajectory.TrajectorySampling
+  _target_: nav123d.datatypes.trajectory.TrajectorySampling
   _convert_: 'all'
   time_horizon: 4
   interval_length: 0.5

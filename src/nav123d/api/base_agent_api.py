@@ -24,7 +24,7 @@ class AgentAPI(SceneAPI):
     @property
     @abc.abstractmethod
     def observation_type(self) -> ObservationType:
-        """Returns the name of the agent observation type."""
+        """Returns the agent's observation type."""
 
     def get_route_lane_group_ids(self) -> List[int]:
         """Returns the lane group ids corresponding to the route."""

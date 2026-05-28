@@ -3,7 +3,7 @@ from py123d.api import SceneAPI
 from py123d.datatypes import EgoStateSE3
 from py123d.geometry.transform import abs_to_rel_se2_array
 
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 
 
 def sample_ego_trajectory_from_api(

@@ -26,7 +26,7 @@ from nav123d.agents.pdm.utils.pdm_closed_utils import (
     get_starting_lane,
 )
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
-from nav123d.geometry.trajectory import Trajectory, TrajectorySampling
+from nav123d.datatypes.trajectory import Trajectory, TrajectorySampling
 
 logger = logging.getLogger(__name__)
 

@@ -26,6 +26,7 @@ exp
 scripts_dev/*
 visualization/*
 .coverage
+.claude
 
 
 # Sphinx documentation

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
-from nav123d.geometry.trajectory import Trajectory
+from nav123d.datatypes.trajectory import Trajectory
 
 
 class BaseAgent(ABC):

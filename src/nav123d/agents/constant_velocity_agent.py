@@ -2,7 +2,7 @@ import numpy as np
 
 from nav123d.agents.base_agent import BaseAgent
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
-from nav123d.geometry.trajectory import TrajectorySampling, TrajectorySE2
+from nav123d.datatypes.trajectory import TrajectorySampling, TrajectorySE2
 
 
 class ConstantVelocityAgent(BaseAgent):

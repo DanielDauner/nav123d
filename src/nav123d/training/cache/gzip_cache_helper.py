@@ -28,7 +28,6 @@ def dump_feature_target_to_pickle(
     compresslevel: int = GZIP_COMPRESSION_LEVEL,
 ) -> None:
     """Helper function to save feature/target to pickle."""
-    # Use compresslevel = 1 to compress the size but also has fast write and read.
     with gzip.open(path, "wb", compresslevel=compresslevel) as f:
         pickle.dump(data_dict, f)
 
@@ -39,6 +38,16 @@ def load_valid_caches(
     feature_builders: List[BaseFeatureBuilder],
     target_builders: List[BaseTargetBuilder],
 ) -> Dict[str, Path]:
+    """Scans the cache directory and returns scenes whose builder caches are all present.
+
+    Scenes missing any feature/target builder cache are skipped with a warning.
+
+    :param cache_path: root cache directory, or None to return an empty mapping
+    :param dataset_type: dataset split ("train", "val" or "test") to scan
+    :param feature_builders: feature builders whose caches must exist
+    :param target_builders: target builders whose caches must exist
+    :return: mapping from scene uuid to its cache directory
+    """
     valid_cache_paths: Dict[str, Path] = {}
     if cache_path is not None:
         for split_name_path in (Path(cache_path) / dataset_type).iterdir():
@@ -66,6 +75,13 @@ def load_scene_from_cache(
     feature_builders: List[BaseFeatureBuilder],
     target_builders: List[BaseTargetBuilder],
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    """Loads the cached features and targets for a single scene.
+
+    :param scene_uuid_path: cache directory of the scene
+    :param feature_builders: feature builders whose caches to load
+    :param target_builders: target builders whose caches to load
+    :return: tuple of (feature dict, target dict)
+    """
     feature_dict: Dict[str, torch.Tensor] = {}
     target_dict: Dict[str, torch.Tensor] = {}
 
