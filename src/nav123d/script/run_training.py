@@ -52,22 +52,22 @@ def main(cfg: DictConfig) -> None:
             cache_path=cfg.cache_path,
             feature_builders=torch_agent.get_feature_builders(),
             target_builders=torch_agent.get_target_builders(),
-            log_names=cfg.train_logs,
+            dataset_type="train",
         )
         val_data = TorchAgentCachedDataset(
             cache_path=cfg.cache_path,
             feature_builders=torch_agent.get_feature_builders(),
             target_builders=torch_agent.get_target_builders(),
-            log_names=cfg.val_logs,
+            dataset_type="val",
         )
     else:
         executor = build_executor(cfg)
         train_data, val_data = build_datasets(cfg, torch_agent, executor)
 
     logger.info("Building Datasets")
-    train_dataloader = DataLoader(train_data, **cfg.dataloader.params, shuffle=True)
+    train_dataloader = DataLoader(train_data, **cfg.train_dataloader.params)
     logger.info("Num training samples: %d", len(train_data))  # type: ignore
-    val_dataloader = DataLoader(val_data, **cfg.dataloader.params, shuffle=False)
+    val_dataloader = DataLoader(val_data, **cfg.val_dataloader.params)
     logger.info("Num validation samples: %d", len(val_data))  # type: ignore
 
     logger.info("Building Trainer")
@@ -103,6 +103,7 @@ def build_datasets(
         observation_type=agent.get_observation_type(),
         cache_path=cfg.cache_path,
         force_cache_computation=cfg.force_cache_computation,
+        dataset_type="train",
     )
 
     val_data = TorchAgentDataset(
@@ -112,6 +113,7 @@ def build_datasets(
         observation_type=agent.get_observation_type(),
         cache_path=cfg.cache_path,
         force_cache_computation=cfg.force_cache_computation,
+        dataset_type="val",
     )
 
     return train_data, val_data

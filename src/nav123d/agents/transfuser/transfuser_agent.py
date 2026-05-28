@@ -13,6 +13,7 @@ from nav123d.agents.transfuser.transfuser_loss import transfuser_loss
 from nav123d.agents.transfuser.transfuser_model import TransfuserModel
 from nav123d.api.base_agent_api import ObservationType
 from nav123d.geometry.trajectory import TrajectorySampling
+from nav123d.training.callbacks.time_logging_callback import TimeLoggingCallback
 
 # from nav123d.agents.transfuser.transfuser_callback import TransfuserCallback
 
@@ -91,5 +92,4 @@ class TransfuserAgent(BaseTorchAgent):
 
     def get_training_callbacks(self) -> List[pl.Callback]:
         """Inherited, see superclass."""
-        return [TransfuserCallback(self._config)]  # FIXME:
-        # return []
+        return [TransfuserCallback(self._config), TimeLoggingCallback()]

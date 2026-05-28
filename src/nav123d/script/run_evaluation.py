@@ -4,7 +4,9 @@
 # CONFIG_NAME = "default_run_pdm_score"
 from typing import Dict, List, Tuple
 
+import hydra
 import pandas as pd
+from omegaconf import DictConfig
 from py123d.api import SceneAPI, SceneFilter, get_filtered_scenes
 from py123d.common.execution import RayExecutor, executor_map_chunked_list
 
@@ -55,9 +57,13 @@ def _build_agent(name: str) -> BaseAgent:
     raise ValueError(f"Unknown agent name: {name}")
 
 
-def main():
-    # 1. Load scene and agent trajectory.
+CONFIG_PATH = "config/training"
+CONFIG_NAME = "default_training"
 
+
+@hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME, version_base=None)
+def main(cfg: DictConfig) -> None:
+    # 1. Load scene and agent trajectory.
     scene_filter = SceneFilter(
         datasets=["nuplan-mini"],
         # datasets=["av2-sensor"],
