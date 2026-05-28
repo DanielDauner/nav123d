@@ -11,21 +11,28 @@
 
 > 🏗️ **Under construction.** Expect things to change, break, and improve as we build it out. Comments, suggestions, and contributions are very welcome!
 
-`nav123d` reimplements [NAVSIM](https://arxiv.org/abs/2406.15349) — data-driven, non-reactive autonomous-vehicle simulation and benchmarking — on top of the [123D](https://arxiv.org/abs/2605.08084) unified data framework, so the same agents, metrics, and training/evaluation pipeline run across datasets. It ships baseline agents (constant-velocity, ego-status MLP, PDM, TransFuser) together with training and evaluation entry points.
+`nav123d` reimplements [NAVSIM](https://github.com/autonomousvision/navsim) — data-driven, non-reactive autonomous-vehicle simulation and benchmarking — on top of the [123D](https://github.com/kesai-labs/py123d) unified data framework, with similar agents, metrics, and training/evaluation pipeline run across datasets. It ships baseline agents (constant-velocity, ego-status MLP, PDM, TransFuser) together with training and evaluation entry points.
 
 ## Installation
+Editable pip install (Python 3.9 - 3.12):
+```sh
+pip install -e .
+```
+... or in a fresh conda environment (Python 3.9 - 3.12)
 
 ```sh
-# Editable pip install (Python 3.9 - 3.12)
-pip install -e .
-
-# or a conda environment
-conda env create -f environment.yml
+conda create -n nav123d python=3.12 -y
 conda activate nav123d
+pip install uv
+uv pip install -e .[dev]
 ```
+
+> [!WARNING]
+> We have not verified that metric values are identical across Python versions. If you intend to compare or report results, make sure all runs use the same Python version.
 
 See the [installation docs](docs/installation.md) for dataset setup and environment variables.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Citation
 
