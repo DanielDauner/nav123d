@@ -52,7 +52,7 @@ def _get_xy_heading_displacements_from_poses(
     xy_displacements = pose_differences[..., :2]
     heading_displacements = normalize_angle(pose_differences[..., 2])
 
-    return xy_displacements, heading_displacements
+    return xy_displacements, heading_displacements  # type: ignore
 
 
 def _make_banded_difference_matrix(number_rows: int) -> npt.NDArray[np.float64]:
@@ -125,7 +125,7 @@ def _fit_initial_velocity_and_acceleration_profile(
     # converge on degenerate inputs).
     lhs_matrix = batch_matmul(A_T, A) + jerk_penalty * batch_matmul(R_T, R)
     rhs_vector = np.einsum("bij,bj->bi", A_T, y)
-    x = np.linalg.solve(lhs_matrix, rhs_vector)
+    x = np.linalg.solve(lhs_matrix, rhs_vector[..., None])[..., 0]
 
     # NOTE: This is the original PDM implementation using pinv.
     # intermediate_solution = batch_matmul(
@@ -187,7 +187,7 @@ def _fit_initial_curvature_and_curvature_rate_profile(
     A_T = A.transpose(0, 2, 1)
     lhs_matrix = batch_matmul(A_T, A) + Q
     rhs_vector = np.einsum("bij,bj->bi", A_T, y)
-    x = np.linalg.solve(lhs_matrix, rhs_vector)
+    x = np.linalg.solve(lhs_matrix, rhs_vector[..., None])[..., 0]
 
     # NOTE: This is the original PDM implementation using pinv.
     # intermediate = batch_matmul(np.linalg.pinv(batch_matmul(A_T, A) + Q), A_T)
