@@ -338,63 +338,6 @@ class PDMScorer:
 
         return final_scores
 
-    # TODO: Delete once refactoring final
-    # def _reset(
-    #     self,
-    #     states: npt.NDArray[np.float64],
-    #     observation: PDMObservation,
-    #     centerline: PDMPath,
-    #     route_lane_ids: List[str],
-    #     drivable_area_map: PDMDrivableMap,
-    # ) -> None:
-    #     """
-    #     Resets metric values and lazy loads input classes.
-    #     :param states: array representation of simulated proposals
-    #     :param observation: PDM's observation class
-    #     :param centerline: path of the centerline
-    #     :param route_lane_ids: list containing on-route lane ids
-    #     :param drivable_area_map: Occupancy map of drivable are polygons
-    #     """
-    #     assert states.ndim == 3
-    #     assert states.shape[1] == self.proposal_sampling.num_poses + 1
-    #     assert states.shape[2] == len(StateIndex)
-
-    #     self._state.observation = observation
-    #     self._state.centerline = centerline
-    #     self._route_lane_ids = route_lane_ids
-    #     self._state.drivable_area_map = drivable_area_map
-    #     self._human_past_trajectory = human_past_trajectory
-
-    #     self._state.num_proposals = states.shape[0]
-
-    #     # save ego state values
-    #     self._state.states = states
-
-    #     # calculate coordinates of ego corners and center
-    #     self._state.ego_coords = state_array_to_coords_array(states, self._metadata)
-
-    #     # initialize all ego polygons from corners
-    #     self._state.ego_polygons = coords_array_to_polygon_array(self._state.ego_coords)
-
-    #     # zero initialize all remaining arrays.
-    #     self._state.ego_areas = np.zeros(
-    #         (
-    #             self._state.num_proposals,
-    #             self.proposal_sampling.num_poses + 1,
-    #             len(EgoAreaIndex),
-    #         ),
-    #         dtype=np.bool_,
-    #     )
-    #     self._state.multi_metrics = np.zeros((len(MultiMetricIndex), self._state.num_proposals), dtype=np.float64)
-    #     self._state.weighted_metrics = np.zeros((len(WeightedMetricIndex), self._state.num_proposals), dtype=np.float64)
-    #     self._progress_raw = np.zeros(self._state.num_proposals, dtype=np.float64)
-
-    #     # initialize infraction arrays with infinity (meaning no infraction occurs)
-    #     self._state.collision_time_idcs = np.zeros(self._state.num_proposals, dtype=np.float64)
-    #     self._ttc_time_idcs = np.zeros(self._state.num_proposals, dtype=np.float64)
-    #     self._state.collision_time_idcs.fill(np.inf)
-    #     self._ttc_time_idcs.fill(np.inf)
-
     def _calculate_ego_area(self) -> None:
         """Determines the area type each proposal occupies over time.
 
@@ -404,7 +347,7 @@ class PDMScorer:
 
         n_proposals, n_horizon, n_points, _ = self._state.ego_coords.shape
 
-        in_polygons = self._state.drivable_area_map.contains_vectorized(self._state.ego_coords)
+        in_polygons = self._state.drivable_area_map.contains_points_2d(self._state.ego_coords)
         in_polygons = in_polygons.transpose(1, 2, 0, 3)  # shape: n_proposals, n_horizon, n_polygons, n_points
 
         def _get_indices_of_map_layer(map_layer: MapLayer) -> List[int]:
