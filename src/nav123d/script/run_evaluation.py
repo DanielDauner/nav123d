@@ -17,6 +17,7 @@ from py123d.script.builders.utils.utils_type import validate_type
 from nav123d.agents.base_agent import BaseAgent
 from nav123d.api import scene_api_to_agent_api
 from nav123d.datatypes.trajectory import TrajectorySE2
+from nav123d.metrics.trajectory_utils import to_ego_relative_trajectory_se2
 from nav123d.script.builders.metric_builder import build_metrics
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,17 @@ def _evaluate_scenes(
         agent_api = scene_api_to_agent_api(scene, observation_type=observation_type)
         trajectory = agent.compute_trajectory(agent_api)
         assert isinstance(trajectory, TrajectorySE2), "Agent trajectory must be of type TrajectorySE2."
+
+        # Normalize into the canonical ego-relative frame so every metric can assume a single
+        # convention regardless of whether the agent planned in ego or global coordinates.
+        initial_ego_state_se3 = scene.get_ego_state_se3_at_iteration(0)
+        assert initial_ego_state_se3 is not None, "Initial ego state SE3 not found in SceneAPI."
+        trajectory = to_ego_relative_trajectory_se2(
+            trajectory=trajectory,
+            frame=agent.get_trajectory_frame(),
+            initial_ego_state_se2=initial_ego_state_se3.ego_state_se2,
+        )
+
         result: Dict[str, object] = {"scene_uuid": scene.scene_uuid}
         for metric in metrics:
             result.update(metric.compute_metric(scene, agent_trajectory=trajectory))

@@ -10,7 +10,7 @@ from py123d.api import MapAPI
 from py123d.datatypes import EgoStateSE2, Lane, LaneGroup
 from py123d.geometry import OccupancyMap2D, PolylineSE2
 
-from nav123d.agents.base_agent import BaseAgent
+from nav123d.agents.base_agent import BaseAgent, TrajectoryFrame
 from nav123d.agents.pdm.observation.pdm_observation import PDMObservation
 from nav123d.agents.pdm.proposal.batch_idm_policy import BatchIDMPolicy
 from nav123d.agents.pdm.proposal.pdm_generator import PDMGenerator
@@ -93,6 +93,10 @@ class PDMAgent(BaseAgent):
     def get_observation_type(self) -> ObservationType:
         """Inherited, see superclass."""
         return ObservationType.PLANNER
+
+    def get_trajectory_frame(self) -> TrajectoryFrame:
+        """Inherited, see superclass. PDM-Closed plans on map geometry in the absolute frame."""
+        return TrajectoryFrame.GLOBAL
 
     def compute_trajectory(self, agent_api: AgentAPI) -> Trajectory:
         """Inherited, see superclass."""

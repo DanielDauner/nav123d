@@ -18,9 +18,10 @@ from nav123d.metrics.trajectory_utils import resample_trajectory_se2
 class PDMMetric(BaseMetric):
     """Scores an agent trajectory with the PDM-Closed closed-loop simulation and scorer."""
 
-    def __init__(self) -> None:
+    def __init__(self, route_correction: bool = True) -> None:
         """Constructor of PDMMetric, fixing the scoring sampling to 4s at 0.1s intervals."""
         self._score_trajectory_sampling = TrajectorySampling(time_horizon=4, interval_length=0.1)
+        self._route_correction = route_correction
 
     def compute_metric(self, scene_api: SceneAPI, **kwargs) -> dict:
         """Inherited, see superclass."""
@@ -30,7 +31,7 @@ class PDMMetric(BaseMetric):
 
         # 1. Run PDM-Closed to get trajectory.
         # 1.1 Initialize PDM-Closed planner with map and route information.
-        pdm_agent = PDMAgent()
+        pdm_agent = PDMAgent(route_correction=False)
         map_api = scene_api.get_map_api()
         assert map_api is not None, "MapAPI not found in SceneAPI."
         pdm_agent.initialize()
@@ -45,6 +46,9 @@ class PDMMetric(BaseMetric):
         assert _ego_state_se3 is not None, "Initial ego state SE3 not found in SceneAPI."
         initial_ego_state_se2 = _ego_state_se3.ego_state_se2
 
+        # The PDM simulator/scorer operate in the absolute frame. PDM-Closed already plans in global
+        # coordinates, whereas the evaluated agent trajectory reaches us in the canonical ego-relative
+        # frame (normalized in run_evaluation), so only the latter needs converting to absolute.
         resampled_pdm_trajectory = resample_trajectory_se2(
             trajectory=pdm_trajectory,
             sampling=self._score_trajectory_sampling,
@@ -81,7 +85,7 @@ class PDMMetric(BaseMetric):
         log_replay_observation = PDMObservation(
             trajectory_sampling=TrajectorySampling(time_horizon=8, interval_length=0.1),
             proposal_sampling=TrajectorySampling(time_horizon=4, interval_length=0.1),
-            map_radius=50.0,
+            map_radius=100.0,
             observation_sample_res=1,
             extend_observation_for_ttc=True,
         )
