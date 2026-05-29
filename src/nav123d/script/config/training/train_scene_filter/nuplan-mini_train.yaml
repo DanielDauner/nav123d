@@ -3,8 +3,8 @@ _target_: py123d.api.scene.scene_filter.SceneFilter
 _convert_: 'all'
 
 datasets: null
-split_types: ["nuplan-mini_train"]
-split_names: null
+split_types: null
+split_names: ["nuplan-mini_train"]
 log_names: null
 
 has_map: null
@@ -18,7 +18,7 @@ scene_uuids: null
 target_iteration_duration_s: null
 future_duration_s: 4.0
 history_duration_s: 0.0
-timestamp_threshold_s: 0.1
+timestamp_threshold_s: 2.0
 target_iteration_stride: null
 future_num_iterations: null
 history_num_iterations: null
@@ -28,4 +28,4 @@ required_scene_modalities: ["ego_state_se3", "lidar.lidar_merged", "camera:all"]
 num_chunks: null
 chunk_idx: null
 max_num_scenes: null
-shuffle: True
+shuffle: False

@@ -100,6 +100,92 @@ def get_current_lane_group_candidates(
     )
 
 
+def _lane_group_entry_exit_yaw(lane_group: LaneGroup) -> Tuple[float, float]:
+    """Returns a representative ``(entry_yaw, exit_yaw)`` [rad] for a lane group.
+
+    Uses the lane group's first lane centerline, whose start/end heading approximate the heading of
+    the (near-parallel) lanes in the group at the group's entry and exit.
+
+    :param lane_group: lane group with at least one lane
+    :return: tuple of (entry yaw, exit yaw) in radians
+    """
+    poses_se2 = lane_group.lanes[0].centerline.polyline_se2.array
+    return float(poses_se2[0, PoseSE2Index.YAW]), float(poses_se2[-1, PoseSE2Index.YAW])
+
+
+def _roll_out_forward_lane_groups(
+    start_lane_group: LaneGroup,
+    search_depth_forward: int = 30,
+) -> Tuple[List[LaneGroup], List[int]]:
+    """Greedily rolls out a 'follow-the-road' route by following the straightest successor.
+
+    At each step the successor minimizing the heading change between the current lane group's exit
+    tangent and the candidate's entry tangent is chosen. Stops at ``search_depth_forward`` steps,
+    when there is no successor, or when a lane group repeats (loop guard).
+
+    :param start_lane_group: lane group to start the rollout from
+    :param search_depth_forward: max number of successor lane groups to append, defaults to 30
+    :return: tuple of (route lane groups, route lane group ids), starting with ``start_lane_group``
+    """
+    route_lane_groups: List[LaneGroup] = [start_lane_group]
+    route_lane_group_ids: List[int] = [int(start_lane_group.object_id)]
+    visited = {int(start_lane_group.object_id)}
+
+    current = start_lane_group
+    for _ in range(search_depth_forward):
+        successors = [successor for successor in current.successors if successor.lanes]
+        if not successors:
+            break
+
+        _, current_exit_yaw = _lane_group_entry_exit_yaw(current)
+        next_group = min(
+            successors,
+            key=lambda successor: abs(normalize_angle(_lane_group_entry_exit_yaw(successor)[0] - current_exit_yaw)),
+        )
+        next_id = int(next_group.object_id)
+        if next_id in visited:  # loop guard
+            break
+
+        route_lane_groups.append(next_group)
+        route_lane_group_ids.append(next_id)
+        visited.add(next_id)
+        current = next_group
+
+    return route_lane_groups, route_lane_group_ids
+
+
+def infer_follow_the_road_route(
+    ego_pose_se2: PoseSE2,
+    map_api: MapAPI,
+    search_depth_forward: int = 30,
+) -> List[int]:
+    """Synthesizes a 'follow-the-road' route from the ego's current lane group.
+
+    Fallback used when no on-route lane groups are available (e.g. there is no logged route and the
+    oracle-based inference found no path). Finds the ego's current lane group purely from the map
+    (no oracle / ground-truth) and greedily follows the straightest successor along the lane-group
+    graph via :func:`_roll_out_forward_lane_groups`.
+
+    :param ego_pose_se2: pose of the ego vehicle
+    :param map_api: map interface
+    :param search_depth_forward: max number of successor lane groups to roll out, defaults to 30
+    :return: ordered lane group ids starting at ego (empty if ego is not on/near any lane group)
+    """
+    # Guard get_current_lane_group_candidates, which calls np.argmin over the candidate list and
+    # would raise on an empty list when no lane group exists near ego (e.g. ego off-map).
+    nearby = map_api.get_map_objects_in_radius(point=ego_pose_se2.point_2d, radius=100.0, layers=[MapLayer.LANE_GROUP])
+    if not nearby[MapLayer.LANE_GROUP]:
+        return []
+
+    starting_group, _ = get_current_lane_group_candidates(
+        ego_pose_se2=ego_pose_se2,
+        map_api=map_api,
+        route_lane_group_dict={},
+    )
+    _, route_lane_group_ids = _roll_out_forward_lane_groups(starting_group, search_depth_forward)
+    return route_lane_group_ids
+
+
 def route_lane_group_correction(
     ego_pose_se2: PoseSE2,
     map_api: MapAPI,
@@ -130,6 +216,11 @@ def route_lane_group_correction(
 
     route_lane_groups = list(route_lane_group_dict.values())
     route_lane_group_ids = list(route_lane_group_dict.keys())
+
+    # When no route is provided, synthesize a follow-the-road route from the current lane group.
+    # Avoids indexing the empty route below and keeps the agent driving down the road.
+    if not route_lane_group_ids:
+        return _roll_out_forward_lane_groups(starting_group, search_depth_forward)
 
     # Fix 1: when agent starts off-route
     if starting_group.object_id not in route_lane_group_ids:

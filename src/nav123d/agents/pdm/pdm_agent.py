@@ -25,6 +25,8 @@ from nav123d.agents.pdm.utils.pdm_closed_utils import (
     get_proposal_paths,
     get_starting_lane,
 )
+from nav123d.agents.pdm.utils.pdm_emergency_brake import PDMEmergencyBrake
+from nav123d.agents.pdm.utils.route_utils import infer_follow_the_road_route
 from nav123d.api.base_agent_api import AgentAPI, ObservationType
 from nav123d.datatypes.trajectory import Trajectory, TrajectorySampling
 
@@ -71,6 +73,7 @@ class PDMAgent(BaseAgent):
         self._generator = PDMGenerator(trajectory_sampling, proposal_sampling)
         self._simulator = PDMSimulator(proposal_sampling)
         self._scorer = PDMScorer(proposal_sampling)
+        self._emergency_brake = PDMEmergencyBrake(trajectory_sampling)
 
         self._iteration: int = 0
 
@@ -113,10 +116,29 @@ class PDMAgent(BaseAgent):
             assert self._map_api is not None, "Map API not found in Agent API."
             assert self._route_lane_group_ids is not None, "Route lane group ids not found in Agent API."
 
+            if len(self._route_lane_group_ids) == 0:
+                # No on-route lane groups available (no logged route and oracle inference found no
+                # path). Synthesize a follow-the-road route from ego's current lane group.
+                assert ego_state_se3 is not None, "Ego state modality not found at iteration."
+                self._route_lane_group_ids = infer_follow_the_road_route(
+                    ego_state_se3.ego_state_se2.rear_axle_se2, self._map_api
+                )
+                logger.warning(
+                    "No on-route lane groups available; using follow-the-road fallback route (%d lane groups).",
+                    len(self._route_lane_group_ids),
+                )
+
         assert ego_state_se3 is not None, "Ego state modality not found at iteration."
         assert box_detections_se3 is not None, "Box detections modality not found at iteration."
         assert self._map_api is not None, "Map API not found in Agent API."
         assert self._route_lane_group_ids is not None, "Route lane group ids not found in Agent API."
+
+        # Safe-stop last resort: ego is not on/near any lane group, so no route can be built.
+        # FIXME: Remove this fallback again or improve the breaking trajectory.
+        if len(self._route_lane_group_ids) == 0:
+            logger.warning("No lane group near ego; returning a decelerate-to-stop trajectory.")
+            self._iteration += 1
+            return self._emergency_brake.generate_stop_trajectory(ego_state_se3.ego_state_se2)
 
         self._route_lane_group_dict, self._route_lane_dict = build_route_dicts(
             self._map_api, self._route_lane_group_ids

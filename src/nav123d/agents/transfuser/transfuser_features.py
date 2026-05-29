@@ -141,9 +141,9 @@ class TransfuserFeatureBuilder(BaseFeatureBuilder):
 
         status_feature = torch.concatenate(
             [
-                torch.tensor(driving_command, dtype=torch.float32),
-                torch.tensor(velocity, dtype=torch.float32),
-                torch.tensor(acceleration, dtype=torch.float32),
+                driving_command,
+                velocity,
+                acceleration,
             ],
         )
         return status_feature

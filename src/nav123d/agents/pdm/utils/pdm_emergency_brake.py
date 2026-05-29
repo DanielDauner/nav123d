@@ -79,15 +79,15 @@ class PDMEmergencyBrake:
 
         # check time to infraction below threshold
         if time_to_infraction <= self._time_to_infraction_threshold and ego_speed <= self._max_ego_speed:
-            trajectory = self._generate_trajectory(ego_state_se2)
+            trajectory = self.generate_stop_trajectory(ego_state_se2)
 
         return trajectory
 
-    def _generate_trajectory(self, ego_state_se2: EgoStateSE2) -> TrajectorySE2:
+    def generate_stop_trajectory(self, ego_state_se2: EgoStateSE2) -> TrajectorySE2:
         """Generates a braking trajectory that decelerates ego to zero velocity.
 
         :param ego_state_se2: state object of ego
-        :return: braking trajectory as SE2
+        :return: braking trajectory as SE2 in the absolute/global frame
         """
         current_time_point = ego_state_se2.timestamp
         assert ego_state_se2.dynamic_state_se2 is not None, (

@@ -49,24 +49,22 @@ def load_valid_caches(
     :return: mapping from scene uuid to its cache directory
     """
     valid_cache_paths: Dict[str, Path] = {}
-    if cache_path is not None:
-        for split_name_path in (Path(cache_path) / dataset_type).iterdir():
-            if not split_name_path.is_dir():
+    dataset_type_path = Path(cache_path) / dataset_type if cache_path is not None else None
+    if dataset_type_path is not None and dataset_type_path.is_dir():
+        for log_name_path in dataset_type_path.iterdir():
+            if not log_name_path.is_dir():
                 continue
-            for log_name_path in split_name_path.iterdir():
-                if not log_name_path.is_dir():
+            for scene_uuid_path in log_name_path.iterdir():
+                if not scene_uuid_path.is_dir():
                     continue
-                for scene_uuid_path in log_name_path.iterdir():
-                    if not scene_uuid_path.is_dir():
-                        continue
-                    found_caches: List[bool] = []
-                    for builder in feature_builders + target_builders:
-                        data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
-                        found_caches.append(data_dict_path.is_file())
-                    if all(found_caches):
-                        valid_cache_paths[scene_uuid_path.name] = scene_uuid_path
-                    else:
-                        logger.warning(f"Cache for scene {scene_uuid_path.name} is incomplete and will be ignored.")
+                found_caches: List[bool] = []
+                for builder in feature_builders + target_builders:
+                    data_dict_path = scene_uuid_path / (builder.get_unique_name() + ".gz")
+                    found_caches.append(data_dict_path.is_file())
+                if all(found_caches):
+                    valid_cache_paths[scene_uuid_path.name] = scene_uuid_path
+                else:
+                    logger.warning(f"Cache for scene {scene_uuid_path.name} is incomplete and will be ignored.")
     return valid_cache_paths
 
 
