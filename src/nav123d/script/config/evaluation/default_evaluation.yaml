@@ -3,10 +3,10 @@ hydra:
     dir: ${output_dir}
   output_subdir: ${output_dir}/code/hydra           # Store hydra's config breakdown here for debugging
   searchpath:
-    - pkg://py123d.script.config
-    - pkg://py123d.script.config.common
     - pkg://nav123d.script.config
     - pkg://nav123d.script.config.common
+    - pkg://py123d.script.config
+    - pkg://py123d.script.config.common
   job:
     chdir: False
 
