@@ -20,7 +20,7 @@ defaults:
 
 experiment_name: training_transfuser_agent
 
-cache_path: ${oc.env:PY123D_EXP_ROOT}/training_cache
+cache_path: ${oc.env:NAV123D_EXP_ROOT}/training_cache
 use_cache_without_dataset: true  # load the training samples from the cache. scene-filter will be ignored
 force_cache_computation: false
 seed: 0
