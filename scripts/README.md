@@ -1,1 +1,1 @@
-NOTE: These scripts are outdated and non updated yet for nav123d.
+NOTE: The training scripts are outdated and non updated yet for nav123d.
