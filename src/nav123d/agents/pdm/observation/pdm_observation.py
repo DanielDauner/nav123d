@@ -221,7 +221,10 @@ class PDMObservation:
         occupancy_maps = []
         unique_objects = {}
 
-        for iteration in range(self._observation_samples + 1):
+        max_available_iteration = scene_api.number_of_iterations - 1
+        max_replay_iteration = min(self._observation_samples, max_available_iteration)
+
+        for iteration in range(max_replay_iteration + 1):
             _box_detections_se3 = scene_api.get_box_detections_se3_at_iteration(iteration)
             assert _box_detections_se3 is not None, (
                 f"PDMObservation: Missing box detections at iteration {iteration} for replay update!"
@@ -236,9 +239,13 @@ class PDMObservation:
                     unique_objects[token] = box_detection_se2
             occupancy_maps.append(OccupancyMap2D.from_dict(_occupancy_dict))
 
-        assert len(occupancy_maps) == self._observation_samples + 1, (
-            f"Expected observation length {self._observation_samples + 1}, but got {len(occupancy_maps)}"
-        )
+        assert len(occupancy_maps) > 0, "PDMObservation: Replay update produced no occupancy maps."
+
+        if len(occupancy_maps) < self._observation_samples + 1:
+            # Some scenes provide a shorter logged future horizon than required by PDM scoring.
+            # Reuse the last available occupancy map for the remaining horizon.
+            last_map = occupancy_maps[-1]
+            occupancy_maps.extend([last_map] * (self._observation_samples + 1 - len(occupancy_maps)))
 
         # self._box_detections_se2 = detection_tracks
         self._occupancy_maps = occupancy_maps
