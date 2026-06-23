@@ -30,12 +30,19 @@ def get_driving_command_heuristic_from_api(scene_api: SceneAPI) -> DrivingComman
            current arc-length, compute the heading change across that intersection.
         2. Otherwise, compute the tangent delta over a fixed lookahead window.
     """
-    initial_ego_state_se3 = scene_api.get_ego_state_se3_at_iteration(0)
-    map_api = scene_api.get_map_api()
+    from nav123d.api.base_agent_api import AgentAPI
+
+    if isinstance(scene_api, AgentAPI):
+        scene_api_ = _get_scene_api_from_agent_api(scene_api)
+    else:
+        scene_api_ = scene_api
+
+    initial_ego_state_se3 = scene_api_.get_ego_state_se3_at_iteration(0)
+    map_api = scene_api_.get_map_api()
     if initial_ego_state_se3 is None or map_api is None:
         return DrivingCommand.UNKNOWN
 
-    route_lane_group_ids = get_route_lane_group_ids_from_api(scene_api)
+    route_lane_group_ids = get_route_lane_group_ids_from_api(scene_api_)
     if not route_lane_group_ids:
         return DrivingCommand.UNKNOWN
 
@@ -174,17 +181,24 @@ def get_route_lane_group_ids_from_api(scene_api: SceneAPI) -> List[int]:
     :param scene_api: scene interface providing map and ego state access
     :return: ordered on-route lane group ids (empty if none can be determined)
     """
+    from nav123d.api.base_agent_api import AgentAPI
+
+    if isinstance(scene_api, AgentAPI):
+        scene_api_ = _get_scene_api_from_agent_api(scene_api)
+    else:
+        scene_api_ = scene_api
+
     route_lane_group_ids: List[int] = []
-    if scene_api.get_map_metadata() is not None:
-        dataset_name = scene_api.get_log_metadata().dataset
+    if scene_api_.get_map_metadata() is not None:
+        dataset_name = scene_api_.get_log_metadata().dataset
         if "nuplan" in dataset_name and _USE_NUPLAN_DEFAULT_ROUTE:
-            if "scenario" in scene_api.get_all_custom_modality_metadatas().keys():
-                modality = scene_api.get_custom_modality_at_iteration(0, "scenario")
+            if "scenario" in scene_api_.get_all_custom_modality_metadatas().keys():
+                modality = scene_api_.get_custom_modality_at_iteration(0, "scenario")
                 assert modality is not None
                 route_lane_group_ids = [int(id_) for id_ in modality.data["route_roadblock_ids"]]
 
         if len(route_lane_group_ids) == 0:
-            route_lane_group_ids = _infer_route_lane_group_ids(scene_api)
+            route_lane_group_ids = _infer_route_lane_group_ids(scene_api_)
     return route_lane_group_ids
 
 
@@ -197,18 +211,12 @@ def _infer_route_lane_group_ids(scene_api: SceneAPI) -> List[int]:
     :param scene_api: Arrow-backed scene interface
     :return: lane group ids along the inferred route (empty if no path is found)
     """
-    # Local import to avoid the route_utils → arrow_agent_api → base_agent_api → route_utils cycle.
-    from nav123d.api.arrow_agent_api import ArrowAgentSceneAPI, ArrowOracleAgentAPI
 
     initial_ego_state_se3 = scene_api.get_ego_state_se3_at_iteration(0)
     assert initial_ego_state_se3 is not None, "Ego state modality not found at iteration 0."
 
-    # NOTE: This is a hacky way of getting access ground-truth ego position at look ahead time.
-    # This implementation shouldn't be the end-results but is currently practical for inferring route info.
-    assert isinstance(scene_api, (ArrowSceneAPI, ArrowAgentSceneAPI)), "Expected scene_api to be of Arrow-backed types."
-    oracle = ArrowOracleAgentAPI(scene_api._log_dir, scene_api._scene_metadata)
     target_ts_us = initial_ego_state_se3.timestamp.time_us + int(_TARGET_ROUTE_LOOKAHEAD_TIME_S * 1e6)
-    end_ego_state_se3 = oracle.get_ego_state_se3_at_timestamp(target_ts_us, criteria="nearest")
+    end_ego_state_se3 = scene_api.get_ego_state_se3_at_timestamp(target_ts_us, criteria="nearest")
     map_api = scene_api.get_map_api()
     assert end_ego_state_se3 is not None, (
         f"Ego state modality not found at iteration {scene_api.number_of_iterations - 1}."
@@ -267,3 +275,14 @@ def _query_lane_group_candidates(map_api: MapAPI, point_2d: Point2D) -> List[int
             return [int(obj.object_id) for obj in nearby_objects]
 
     return []
+
+
+def _get_scene_api_from_agent_api(agent_api) -> SceneAPI:
+    """Extracts the scene API from an agent API, if possible."""
+    # Local import to avoid the route_utils → arrow_agent_api → base_agent_api → route_utils cycle.
+    from nav123d.api.arrow_agent_api import ArrowAgentSceneAPI
+
+    # NOTE: This is a hacky way of getting access ground-truth ego position at look ahead time.
+    # This implementation shouldn't be the end-results but is currently practical for inferring route info.
+    assert isinstance(agent_api, (ArrowSceneAPI, ArrowAgentSceneAPI)), "Expected scene_api to be of Arrow-backed types."
+    return ArrowSceneAPI(agent_api._log_dir, agent_api._scene_metadata)
