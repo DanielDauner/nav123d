@@ -200,7 +200,7 @@ class PDMAgent(BaseAgent):
             states=simulated_proposals_array,
             observation=self._observation,
             centerline=self._centerline,
-            route_lane_ids=list(self._route_lane_dict.keys()),
+            route_lane_ids=list(self._route_lane_group_dict.keys()),
             drivable_area_map=self._drivable_area_map,
             ego_metadata=ego_state_se2.metadata,
         )

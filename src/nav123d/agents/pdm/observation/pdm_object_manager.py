@@ -116,7 +116,7 @@ class PDMObjectManager:
                 dynamic_object_dxy_,
             ) = self._get_nearest_dynamic_objects(position, dynamic_object_type)
 
-            if dynamic_object_bbse2_.ndim != 3:
+            if dynamic_object_bbse2_.ndim != 2:
                 continue
 
             dynamic_object_tokens.extend(dynamic_object_tokens_)
